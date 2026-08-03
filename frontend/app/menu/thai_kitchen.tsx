@@ -1,6 +1,7 @@
 import { API_URL } from "@/constants/Config";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -19,9 +20,8 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   useWindowDimensions,
-  View
+  View,
 } from "react-native";
-import { Image } from "expo-image";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -38,7 +38,7 @@ import {
   addToCartGlobal,
   getContextId,
   setCurrentContext,
-  useCartStore
+  useCartStore,
 } from "../../stores/cartStore";
 import { useGeneralSettingsStore } from "../../stores/generalSettingsStore";
 import { useMenuStore } from "../../stores/menuStore";
@@ -100,7 +100,9 @@ const NavRail = () => {
 
 const DishCard = React.memo(
   ({ dish, width, cartQty, onPress, isPhone, isTablet, isLandscape }: any) => {
-    const isSC = (Number(dish.isServiceCharge) === 1 || dish.isServiceCharge === true) && useGeneralSettingsStore.getState().settings.SVCIdentification !== false;
+    const isSC =
+      (Number(dish.isServiceCharge) === 1 || dish.isServiceCharge === true) &&
+      useGeneralSettingsStore.getState().settings.SVCIdentification !== false;
     return (
       <Pressable
         style={({ pressed }: { pressed: boolean }) => [
@@ -144,11 +146,11 @@ const DishCard = React.memo(
               ? { width: 48, height: 48, marginBottom: 4 }
               : isTablet
                 ? {
-                  width: 75,
-                  height: 75,
-                  marginBottom: 6,
-                  borderRadius: 37.5,
-                }
+                    width: 75,
+                    height: 75,
+                    marginBottom: 6,
+                    borderRadius: 37.5,
+                  }
                 : null,
           ]}
         >
@@ -197,11 +199,34 @@ const DishCard = React.memo(
             isPhone ? { fontSize: 12 } : isTablet ? { fontSize: 14 } : null,
           ]}
         >
-          {(Number(dish.IsOpenItem) === 1 || dish.IsOpenItem === true || dish.IsOpenItem === 'true' || dish.IsOpenItem === '1') ? "Open Price" : `$${(dish.Price || 0).toFixed(2)}`}
+          {Number(dish.IsOpenItem) === 1 ||
+          dish.IsOpenItem === true ||
+          dish.IsOpenItem === "true" ||
+          dish.IsOpenItem === "1"
+            ? "Open Price"
+            : `$${(dish.Price || 0).toFixed(2)}`}
         </Text>
-        {(Number(dish.IsOpenItem) === 1 || dish.IsOpenItem === true || dish.IsOpenItem === 'true' || dish.IsOpenItem === '1') ? (
-          <View style={{ backgroundColor: "#F59E0B22", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginTop: 2, borderWidth: 1, borderColor: "#F59E0B44", alignSelf: "center" }}>
-            <Text style={{ fontSize: 9, color: "#B45309", fontFamily: Fonts.bold }}>OPEN</Text>
+        {Number(dish.IsOpenItem) === 1 ||
+        dish.IsOpenItem === true ||
+        dish.IsOpenItem === "true" ||
+        dish.IsOpenItem === "1" ? (
+          <View
+            style={{
+              backgroundColor: "#F59E0B22",
+              borderRadius: 4,
+              paddingHorizontal: 5,
+              paddingVertical: 1,
+              marginTop: 2,
+              borderWidth: 1,
+              borderColor: "#F59E0B44",
+              alignSelf: "center",
+            }}
+          >
+            <Text
+              style={{ fontSize: 9, color: "#B45309", fontFamily: Fonts.bold }}
+            >
+              OPEN
+            </Text>
           </View>
         ) : null}
       </Pressable>
@@ -237,13 +262,14 @@ const DishCardWrapper = React.memo(
   },
   (prevProps, nextProps) => {
     return (
-      (prevProps.item.DishId || prevProps.item.id) === (nextProps.item.DishId || nextProps.item.id) &&
+      (prevProps.item.DishId || prevProps.item.id) ===
+        (nextProps.item.DishId || nextProps.item.id) &&
       prevProps.width === nextProps.width &&
       prevProps.isPhone === nextProps.isPhone &&
       prevProps.isTablet === nextProps.isTablet &&
       prevProps.isLandscape === nextProps.isLandscape
     );
-  }
+  },
 );
 
 const DishGridSkeleton = ({ cardWidth, columns, gap, isPhone }: any) => {
@@ -314,7 +340,7 @@ const CartBadge = React.memo(({ isPhone, isLandscape }: any) => {
       style={[
         styles.cartBadge,
         isPhone &&
-        isLandscape && { top: -4, right: -4, minWidth: 16, height: 16 },
+          isLandscape && { top: -4, right: -4, minWidth: 16, height: 16 },
       ]}
     >
       <Text
@@ -369,7 +395,9 @@ export default function MenuScreen() {
   const [songName, setSongName] = useState("");
 
   const [selectedDish, setSelectedDish] = useState<any | null>(null);
-  const [selectedModifierQuantities, setSelectedModifierQuantities] = useState<Record<string, number>>({});
+  const [selectedModifierQuantities, setSelectedModifierQuantities] = useState<
+    Record<string, number>
+  >({});
   const [loadingModifiers, setLoadingModifiers] = useState(false);
 
   // Open Item modal state
@@ -451,7 +479,7 @@ export default function MenuScreen() {
       const cart = useCartStore.getState().carts[currentContextId!] || [];
       const kitchenGroups: Record<string, any[]> = {};
       const expandedItems: any[] = [];
-      
+
       cart
         .filter((i: any) => i.status !== "VOIDED")
         .forEach((item: any) => {
@@ -460,8 +488,15 @@ export default function MenuScreen() {
             item.comboSelections.forEach((g: any) => {
               if (Array.isArray(g.items)) {
                 g.items.forEach((opt: any) => {
-                  const optKitchenCode = opt.KitchenTypeCode || opt.kitchenCode || opt.kitchenTypeCode;
-                  const parentKitchenCode = item.KitchenTypeCode || item.kitchenCode || item.kitchenTypeCode || "0";
+                  const optKitchenCode =
+                    opt.KitchenTypeCode ||
+                    opt.kitchenCode ||
+                    opt.kitchenTypeCode;
+                  const parentKitchenCode =
+                    item.KitchenTypeCode ||
+                    item.kitchenCode ||
+                    item.kitchenTypeCode ||
+                    "0";
                   if (optKitchenCode && optKitchenCode !== parentKitchenCode) {
                     expandedItems.push({
                       ...opt,
@@ -470,7 +505,8 @@ export default function MenuScreen() {
                       price: 0,
                       name: `${opt.name} (Combo - ${item.name})`,
                       KitchenTypeCode: optKitchenCode,
-                      KitchenTypeName: opt.KitchenTypeName || opt.kitchenTypeName,
+                      KitchenTypeName:
+                        opt.KitchenTypeName || opt.kitchenTypeName,
                       PrinterIP: opt.PrinterIP || opt.printerIp,
                     });
                   }
@@ -611,13 +647,19 @@ export default function MenuScreen() {
 
   const mainWidth = showCart
     ? (isLandscape && !isTablet ? usableWidth : width) - cartWidth
-    : (isLandscape && !isTablet ? usableWidth : width);
+    : isLandscape && !isTablet
+      ? usableWidth
+      : width;
 
   const columns = isTablet
     ? isLandscape
       ? showCart
-        ? (width > 1200 ? 5 : 3)
-        : (width > 1200 ? 7 : 5)
+        ? width > 1200
+          ? 5
+          : 3
+        : width > 1200
+          ? 7
+          : 5
       : showCart
         ? 2
         : 4 // At least 4 columns for tablet portrait when cart is off
@@ -694,7 +736,7 @@ export default function MenuScreen() {
           style={[
             styles.headerBillBtn,
             isPhone &&
-            isLandscape && { width: 36, height: 36, borderRadius: 8 },
+              isLandscape && { width: 36, height: 36, borderRadius: 8 },
             menuLoading && { opacity: 0.5 },
           ]}
           onPress={handleForceRefresh}
@@ -715,7 +757,7 @@ export default function MenuScreen() {
           style={[
             styles.headerBillBtn,
             isPhone &&
-            isLandscape && { width: 36, height: 36, borderRadius: 8 },
+              isLandscape && { width: 36, height: 36, borderRadius: 8 },
           ]}
           onPress={() => setShowReprintOptions(true)}
         >
@@ -730,7 +772,7 @@ export default function MenuScreen() {
           style={[
             styles.headerCartBtn,
             isPhone &&
-            isLandscape && { width: 36, height: 36, borderRadius: 8 },
+              isLandscape && { width: 36, height: 36, borderRadius: 8 },
             showCart && { backgroundColor: Theme.primaryLight },
           ]}
           onPress={toggleCart}
@@ -764,7 +806,11 @@ export default function MenuScreen() {
         keyExtractor={(item: any) => item.CategoryId}
         onScrollToIndexFailed={(info) => {
           setTimeout(() => {
-            categoryListRef.current?.scrollToIndex({ index: info.index, viewPosition: 0.5, animated: true });
+            categoryListRef.current?.scrollToIndex({
+              index: info.index,
+              viewPosition: 0.5,
+              animated: true,
+            });
           }, 50);
         }}
         renderItem={({ item, index }) => (
@@ -777,7 +823,11 @@ export default function MenuScreen() {
             ]}
             onPress={() => {
               loadGroups(item.CategoryId);
-              categoryListRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+              categoryListRef.current?.scrollToIndex({
+                index,
+                viewPosition: 0.5,
+                animated: true,
+              });
             }}
           >
             <Text
@@ -812,7 +862,11 @@ export default function MenuScreen() {
             keyExtractor={(item: any) => item.DishGroupId}
             onScrollToIndexFailed={(info) => {
               setTimeout(() => {
-                groupListRef.current?.scrollToIndex({ index: info.index, viewPosition: 0.5, animated: true });
+                groupListRef.current?.scrollToIndex({
+                  index: info.index,
+                  viewPosition: 0.5,
+                  animated: true,
+                });
               }, 50);
             }}
             renderItem={({ item, index }) => (
@@ -822,17 +876,22 @@ export default function MenuScreen() {
                   styles.groupPill,
                   selectedGroup === item.DishGroupId && styles.groupPillActive,
                   isPhone &&
-                  isLandscape && { height: 36, paddingHorizontal: 14 },
+                    isLandscape && { height: 36, paddingHorizontal: 14 },
                 ]}
                 onPress={() => {
                   loadDishes(item.DishGroupId);
-                  groupListRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+                  groupListRef.current?.scrollToIndex({
+                    index,
+                    viewPosition: 0.5,
+                    animated: true,
+                  });
                 }}
               >
                 <Text
                   style={[
                     styles.groupText,
-                    selectedGroup === item.DishGroupId && styles.groupTextActive,
+                    selectedGroup === item.DishGroupId &&
+                      styles.groupTextActive,
                     isPhone && isLandscape && { fontSize: 12 },
                   ]}
                 >
@@ -877,6 +936,9 @@ export default function MenuScreen() {
         if (targetGroup) {
           const dishesData = await fetchDishes(targetGroup);
           setItems(dishesData);
+
+          // 🔄 Force-refresh modifier cache for the current dish group
+          await useMenuStore.getState().fetchModifiersForGroup(targetGroup);
         }
       }
       showToast({
@@ -955,15 +1017,13 @@ export default function MenuScreen() {
       console.log("Dish Clicked", dish);
       try {
         const splitRes = await fetch(
-          `${API_URL}/api/menu/checksplitdish/${dish.DishId}`
+          `${API_URL}/api/menu/checksplitdish/${dish.DishId}`,
         );
         if (splitRes.ok) {
           const splitData = await splitRes.json();
           console.log("SplitData", splitData);
           if (splitData.IsGroupDish === true) {
-            const res = await fetch(
-              `${API_URL}/api/menu/splitdishes`
-            );
+            const res = await fetch(`${API_URL}/api/menu/splitdishes`);
             const data = await res.json();
             setSplitMembers(data);
             setSelectedSplitDish(dish);
@@ -976,8 +1036,13 @@ export default function MenuScreen() {
       }
 
       // COMBO ITEM: Open wizard customizer instead of standard cart addition
-      const isComboEnabled = useGeneralSettingsStore.getState().settings.enableCombo !== false;
-      const isItCombo = isComboEnabled && (dish.IsCombo === true || String(dish.IsCombo) === "1" || String(dish.IsCombo) === "true");
+      const isComboEnabled =
+        useGeneralSettingsStore.getState().settings.enableCombo !== false;
+      const isItCombo =
+        isComboEnabled &&
+        (dish.IsCombo === true ||
+          String(dish.IsCombo) === "1" ||
+          String(dish.IsCombo) === "true");
       if (isItCombo) {
         setComboDish(dish);
         setShowComboModal(true);
@@ -992,12 +1057,15 @@ export default function MenuScreen() {
         currentKitchen?.KitchenTypeCode || String(selectedKitchenId || "0");
 
       const addToCartSimple = (overridePrice?: number) => {
-        const dishGroupName = dish.DishGroupName || groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
+        const dishGroupName =
+          dish.DishGroupName ||
+          groups.find((g: any) => g.DishGroupId === selectedGroup)
+            ?.DishGroupName;
         const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
         addToCartGlobal({
           id: dish.DishId,
           name: `${groupPrefix}${dish.Name}`,
-          price: overridePrice !== undefined ? overridePrice : (dish.Price || 0),
+          price: overridePrice !== undefined ? overridePrice : dish.Price || 0,
           categoryName: currentKitchenName,
           KitchenTypeName: dish.KitchenTypeName || currentKitchenName,
           PrinterIP: dish.PrinterIP,
@@ -1008,7 +1076,11 @@ export default function MenuScreen() {
       };
 
       // OPEN ITEM: Prompt for custom price before doing anything else
-      const isItOpenItem = Number(dish.IsOpenItem) === 1 || dish.IsOpenItem === true || dish.IsOpenItem === 'true' || dish.IsOpenItem === '1';
+      const isItOpenItem =
+        Number(dish.IsOpenItem) === 1 ||
+        dish.IsOpenItem === true ||
+        dish.IsOpenItem === "true" ||
+        dish.IsOpenItem === "1";
       if (isItOpenItem) {
         setOpenItemDish({
           ...dish,
@@ -1027,6 +1099,8 @@ export default function MenuScreen() {
 
       const cachedData = modifierCache[dish.DishId];
       if (cachedData) {
+        // 🐛 FIX: Always clear the guard before returning — cache hit path never reached finally{} block
+        fetchingModifiers.current.delete(dish.DishId);
         if (cachedData.length > 0) {
           setSelectedDish(dish);
           setSelectedModifierQuantities({});
@@ -1048,7 +1122,7 @@ export default function MenuScreen() {
       try {
         const res = await fetch(`${API_URL}/api/menu/modifiers/${dish.DishId}`);
         const data = await res.json();
-        
+
         if (Array.isArray(data) && data.length > 0) {
           setModifiers(data);
           setShowModifier(true);
@@ -1068,23 +1142,32 @@ export default function MenuScreen() {
 
   // Group modifiers dynamically
   const groupedModifiers = React.useMemo(() => {
-    const groupsMap: Record<string, {
-      groupId: string;
-      groupName: string;
-      minSelect: number;
-      maxSelect: number;
-      multiselect: boolean;
-      items: any[];
-    }> = {};
+    const groupsMap: Record<
+      string,
+      {
+        groupId: string;
+        groupName: string;
+        minSelect: number;
+        maxSelect: number;
+        multiselect: boolean;
+        items: any[];
+      }
+    > = {};
 
     const allMods = [...modifiers, ...customMods];
 
     allMods.forEach((m) => {
       const gId = m.ModifierGroupId || "general";
       const gName = m.ModifierGroupName || "General Modifiers";
-      const minS = m.MinSelectionCount !== undefined ? Number(m.MinSelectionCount) : 0;
-      const maxS = m.MaxSelectionCount !== undefined ? Number(m.MaxSelectionCount) : 0;
-      const multi = m.MultiselectAllow === 1 || m.MultiselectAllow === true || m.MultiselectAllow === "1" || m.MultiselectAllow === "true";
+      const minS =
+        m.MinSelectionCount !== undefined ? Number(m.MinSelectionCount) : 0;
+      const maxS =
+        m.MaxSelectionCount !== undefined ? Number(m.MaxSelectionCount) : 0;
+      const multi =
+        m.MultiselectAllow === 1 ||
+        m.MultiselectAllow === true ||
+        m.MultiselectAllow === "1" ||
+        m.MultiselectAllow === "true";
 
       if (!groupsMap[gId]) {
         groupsMap[gId] = {
@@ -1096,7 +1179,11 @@ export default function MenuScreen() {
           items: [],
         };
       }
-      if (!groupsMap[gId].items.some(x => String(x.ModifierID) === String(m.ModifierID))) {
+      if (
+        !groupsMap[gId].items.some(
+          (x) => String(x.ModifierID) === String(m.ModifierID),
+        )
+      ) {
         groupsMap[gId].items.push(m);
       }
     });
@@ -1106,8 +1193,8 @@ export default function MenuScreen() {
 
   const adjustModifierQuantity = (mod: any, gId: string, delta: number) => {
     const key = `${mod.ModifierID}_${gId}`;
-    
-    const group = groupedModifiers.find(g => g.groupId === gId);
+
+    const group = groupedModifiers.find((g) => g.groupId === gId);
     const maxSelect = group ? group.maxSelect : 0;
     const multiselect = group ? group.multiselect : false;
 
@@ -1126,7 +1213,10 @@ export default function MenuScreen() {
 
       if (delta > 0 && maxSelect > 0) {
         if (groupSelectedCount + delta > maxSelect) {
-          showToast({ type: "error", message: `You can select at most ${maxSelect} items in ${group?.groupName}.` });
+          showToast({
+            type: "error",
+            message: `You can select at most ${maxSelect} items in ${group?.groupName}.`,
+          });
           return prev;
         }
       }
@@ -1185,13 +1275,13 @@ export default function MenuScreen() {
       ModifierGroupName: "General Modifiers",
       MinSelectionCount: 0,
       MaxSelectionCount: 0,
-      MultiselectAllow: 0
+      MultiselectAllow: 0,
     };
 
     setCustomMods((prev) => [...prev, newMod]);
     setSelectedModifierQuantities((prev) => ({
       ...prev,
-      [`${newId}_general`]: 1
+      [`${newId}_general`]: 1,
     }));
 
     setShowCustomModal(false);
@@ -1212,7 +1302,9 @@ export default function MenuScreen() {
             .reduce((sum, [, qty]) => sum + qty, 0);
 
           if (groupSelectedCount < group.minSelect) {
-            alert(`Please select at least ${group.minSelect} items from ${group.groupName}.`);
+            alert(
+              `Please select at least ${group.minSelect} items from ${group.groupName}.`,
+            );
             return;
           }
         }
@@ -1222,7 +1314,9 @@ export default function MenuScreen() {
       Object.entries(selectedModifierQuantities).forEach(([key, qty]) => {
         if (qty <= 0) return;
         const [modId] = key.split("_");
-        const m = allAvailable.find((x) => String(x.ModifierID) === String(modId));
+        const m = allAvailable.find(
+          (x) => String(x.ModifierID) === String(modId),
+        );
         if (m) {
           modsToAdd.push({
             ModifierId: String(m.ModifierID || m.ModifierId || ""),
@@ -1233,7 +1327,10 @@ export default function MenuScreen() {
         }
       });
 
-      const extra = modsToAdd.reduce((sum, m) => sum + (m.Price || 0) * (m.qty || 1), 0);
+      const extra = modsToAdd.reduce(
+        (sum, m) => sum + (m.Price || 0) * (m.qty || 1),
+        0,
+      );
       const finalPrice = (selectedDish.Price || 0) + extra;
 
       const currentKitchen = kitchens.find(
@@ -1243,7 +1340,9 @@ export default function MenuScreen() {
       const currentKitchenCode =
         currentKitchen?.KitchenTypeCode || selectedKitchenId;
 
-      const dishGroupName = selectedDish.DishGroupName || groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
+      const dishGroupName =
+        selectedDish.DishGroupName ||
+        groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
       const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
 
       addToCartGlobal({
@@ -1259,7 +1358,6 @@ export default function MenuScreen() {
         splitMembers: selectedDish.splitMembers || undefined,
         isServiceCharge: selectedDish.isServiceCharge,
       } as any);
-
     }
     setShowModifier(false);
   };
@@ -1286,7 +1384,9 @@ export default function MenuScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const dishGroupName = dish.DishGroupName || groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
+    const dishGroupName =
+      dish.DishGroupName ||
+      groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
     const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
 
     addToCartGlobal({
@@ -1462,9 +1562,7 @@ export default function MenuScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {selectedSplitDish?.Name}
-                </Text>
+                <Text style={styles.modalTitle}>{selectedSplitDish?.Name}</Text>
                 <TouchableOpacity
                   onPress={() => setShowSplitModal(false)}
                   style={styles.modalClose}
@@ -1478,20 +1576,42 @@ export default function MenuScreen() {
               </View>
 
               <View style={styles.modalBody}>
-                <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+                <View
+                  style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}
+                >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: Theme.textSecondary, fontSize: 13, fontFamily: Fonts.bold, marginBottom: 6 }}>Amount</Text>
+                    <Text
+                      style={{
+                        color: Theme.textSecondary,
+                        fontSize: 13,
+                        fontFamily: Fonts.bold,
+                        marginBottom: 6,
+                      }}
+                    >
+                      Amount
+                    </Text>
                     <TextInput
                       placeholder="Enter Amount"
                       value={splitAmount}
-                      onChangeText={(text) => setSplitAmount(text.replace(/[^0-9]/g, ""))}
+                      onChangeText={(text) =>
+                        setSplitAmount(text.replace(/[^0-9]/g, ""))
+                      }
                       keyboardType="numeric"
                       placeholderTextColor={Theme.textMuted}
                       style={styles.customInput}
                     />
                   </View>
                   <View style={{ flex: 1.5 }}>
-                    <Text style={{ color: Theme.textSecondary, fontSize: 13, fontFamily: Fonts.bold, marginBottom: 6 }}>Song Name</Text>
+                    <Text
+                      style={{
+                        color: Theme.textSecondary,
+                        fontSize: 13,
+                        fontFamily: Fonts.bold,
+                        marginBottom: 6,
+                      }}
+                    >
+                      Song Name
+                    </Text>
                     <TextInput
                       placeholder="Enter Song Name"
                       value={songName}
@@ -1502,18 +1622,46 @@ export default function MenuScreen() {
                   </View>
                 </View>
 
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <Text style={{ fontSize: 14, fontFamily: Fonts.bold, color: Theme.textPrimary }}>Select Members</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: Fonts.bold,
+                      color: Theme.textPrimary,
+                    }}
+                  >
+                    Select Members
+                  </Text>
                   <TouchableOpacity
                     onPress={() => {
-                      const allSelected = splitMembers.every(x => x.IsSelected);
-                      const updated = splitMembers.map(x => ({ ...x, IsSelected: !allSelected }));
+                      const allSelected = splitMembers.every(
+                        (x) => x.IsSelected,
+                      );
+                      const updated = splitMembers.map((x) => ({
+                        ...x,
+                        IsSelected: !allSelected,
+                      }));
                       setSplitMembers(updated);
                     }}
                     style={{ paddingVertical: 2, paddingHorizontal: 6 }}
                   >
-                    <Text style={{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.primary }}>
-                      {splitMembers.every(x => x.IsSelected) ? "Deselect All" : "Select All"}
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontFamily: Fonts.bold,
+                        color: Theme.primary,
+                      }}
+                    >
+                      {splitMembers.every((x) => x.IsSelected)
+                        ? "Deselect All"
+                        : "Select All"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1530,8 +1678,7 @@ export default function MenuScreen() {
                       activeOpacity={0.7}
                       onPress={() => {
                         const updated = [...splitMembers];
-                        updated[index].IsSelected =
-                          !updated[index].IsSelected;
+                        updated[index].IsSelected = !updated[index].IsSelected;
                         setSplitMembers(updated);
                       }}
                       style={[
@@ -1540,22 +1687,20 @@ export default function MenuScreen() {
                         item.IsSelected && styles.modifierRowSelected,
                       ]}
                     >
-                      <Text style={[styles.modifierName, { fontSize: 14 }]}>{item.Name}</Text>
+                      <Text style={[styles.modifierName, { fontSize: 14 }]}>
+                        {item.Name}
+                      </Text>
 
                       <View
                         style={[
                           styles.checkbox,
                           { width: 22, height: 22, borderRadius: 6 },
                           item.IsSelected && styles.checkboxActive,
-                          { borderColor: Theme.success }
+                          { borderColor: Theme.success },
                         ]}
                       >
                         {item.IsSelected && (
-                          <Ionicons
-                            name="checkmark"
-                            size={14}
-                            color="#fff"
-                          />
+                          <Ionicons name="checkmark" size={14} color="#fff" />
                         )}
                       </View>
                     </TouchableOpacity>
@@ -1575,32 +1720,43 @@ export default function MenuScreen() {
                     },
                   ]}
                   onPress={() => {
-                    const selected = splitMembers.filter(
-                      (x) => x.IsSelected
-                    );
+                    const selected = splitMembers.filter((x) => x.IsSelected);
 
                     if (selected.length === 0) {
-                      showToast({ message: "Please select at least one member", type: "warning" });
+                      showToast({
+                        message: "Please select at least one member",
+                        type: "warning",
+                      });
                       return;
                     }
 
                     const totalAmount = parseFloat(splitAmount || "0");
 
                     if (totalAmount <= 0) {
-                      showToast({ message: "Please enter amount", type: "warning" });
+                      showToast({
+                        message: "Please enter amount",
+                        type: "warning",
+                      });
                       return;
                     }
 
                     if (!songName.trim()) {
-                      showToast({ message: "Please enter song name", type: "warning" });
+                      showToast({
+                        message: "Please enter song name",
+                        type: "warning",
+                      });
                       return;
                     }
 
-                    const shareAmount =
-                      totalAmount / selected.length;
+                    const shareAmount = totalAmount / selected.length;
 
-                    const dishGroupName = selectedSplitDish?.DishGroupName || groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
-                    const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
+                    const dishGroupName =
+                      selectedSplitDish?.DishGroupName ||
+                      groups.find((g: any) => g.DishGroupId === selectedGroup)
+                        ?.DishGroupName;
+                    const groupPrefix = dishGroupName
+                      ? `${dishGroupName} - `
+                      : "";
 
                     selected.forEach((member) => {
                       console.log({
@@ -1635,13 +1791,31 @@ export default function MenuScreen() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text style={[styles.modalTitle, { fontSize: 18 }]} numberOfLines={2}>
-                    Modifiers {selectedDish.Name} {groupedModifiers.length === 1 && (
-                      <Text style={{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textSecondary }}>
-                        {groupedModifiers[0].minSelect > 0 && groupedModifiers[0].maxSelect > 0 && ` (Select ${groupedModifiers[0].minSelect} to ${groupedModifiers[0].maxSelect})`}
-                        {groupedModifiers[0].minSelect > 0 && groupedModifiers[0].maxSelect === 0 && ` (Select at least ${groupedModifiers[0].minSelect})`}
-                        {groupedModifiers[0].minSelect === 0 && groupedModifiers[0].maxSelect > 0 && ` (Select up to ${groupedModifiers[0].maxSelect})`}
-                        {groupedModifiers[0].minSelect === 0 && groupedModifiers[0].maxSelect === 0 && ` (Optional)`}
+                  <Text
+                    style={[styles.modalTitle, { fontSize: 18 }]}
+                    numberOfLines={2}
+                  >
+                    Modifiers {selectedDish.Name}{" "}
+                    {groupedModifiers.length === 1 && (
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textSecondary,
+                        }}
+                      >
+                        {groupedModifiers[0].minSelect > 0 &&
+                          groupedModifiers[0].maxSelect > 0 &&
+                          ` (Select ${groupedModifiers[0].minSelect} to ${groupedModifiers[0].maxSelect})`}
+                        {groupedModifiers[0].minSelect > 0 &&
+                          groupedModifiers[0].maxSelect === 0 &&
+                          ` (Select at least ${groupedModifiers[0].minSelect})`}
+                        {groupedModifiers[0].minSelect === 0 &&
+                          groupedModifiers[0].maxSelect > 0 &&
+                          ` (Select up to ${groupedModifiers[0].maxSelect})`}
+                        {groupedModifiers[0].minSelect === 0 &&
+                          groupedModifiers[0].maxSelect === 0 &&
+                          ` (Optional)`}
                       </Text>
                     )}
                   </Text>
@@ -1672,8 +1846,10 @@ export default function MenuScreen() {
                       const maxSelect = group.maxSelect;
                       const minSelect = group.minSelect;
                       const multiselect = group.multiselect;
-                      
-                      const groupSelectedCount = Object.entries(selectedModifierQuantities)
+
+                      const groupSelectedCount = Object.entries(
+                        selectedModifierQuantities,
+                      )
                         .filter(([k]) => k.endsWith(`_${gId}`))
                         .reduce((sum, [, q]) => sum + q, 0);
 
@@ -1681,12 +1857,22 @@ export default function MenuScreen() {
                         <View key={gId} style={styles.modifierGroupContainer}>
                           {groupedModifiers.length > 1 && (
                             <View style={styles.modifierGroupHeader}>
-                              <Text style={styles.modifierGroupName}>{gName}</Text>
+                              <Text style={styles.modifierGroupName}>
+                                {gName}
+                              </Text>
                               <Text style={styles.modifierGroupLimits}>
-                                {minSelect > 0 && maxSelect > 0 && `(Select ${minSelect} to ${maxSelect})`}
-                                {minSelect > 0 && maxSelect === 0 && `(Select at least ${minSelect})`}
-                                {minSelect === 0 && maxSelect > 0 && `(Select up to ${maxSelect})`}
-                                {minSelect === 0 && maxSelect === 0 && `(Optional)`}
+                                {minSelect > 0 &&
+                                  maxSelect > 0 &&
+                                  `(Select ${minSelect} to ${maxSelect})`}
+                                {minSelect > 0 &&
+                                  maxSelect === 0 &&
+                                  `(Select at least ${minSelect})`}
+                                {minSelect === 0 &&
+                                  maxSelect > 0 &&
+                                  `(Select up to ${maxSelect})`}
+                                {minSelect === 0 &&
+                                  maxSelect === 0 &&
+                                  `(Optional)`}
                                 {` - Selected: ${groupSelectedCount}`}
                               </Text>
                             </View>
@@ -1696,7 +1882,10 @@ export default function MenuScreen() {
                               const key = `${m.ModifierID}_${gId}`;
                               const qty = selectedModifierQuantities[key] || 0;
                               const isSelected = qty > 0;
-                              const isDisabled = maxSelect > 0 && groupSelectedCount >= maxSelect && qty === 0;
+                              const isDisabled =
+                                maxSelect > 0 &&
+                                groupSelectedCount >= maxSelect &&
+                                qty === 0;
 
                               return (
                                 <TouchableOpacity
@@ -1704,12 +1893,16 @@ export default function MenuScreen() {
                                   style={[
                                     styles.modifierCard,
                                     isSelected && styles.modifierCardSelected,
-                                    isDisabled && { opacity: 0.5 }
+                                    isDisabled && { opacity: 0.5 },
                                   ]}
                                   onPress={() => {
                                     if (isSelected || !isDisabled) {
                                       if (multiselect) {
-                                        adjustModifierQuantity(m, gId, isSelected ? -1 : 1);
+                                        adjustModifierQuantity(
+                                          m,
+                                          gId,
+                                          isSelected ? -1 : 1,
+                                        );
                                       } else {
                                         toggleModifier(m);
                                       }
@@ -1718,11 +1911,23 @@ export default function MenuScreen() {
                                   disabled={isDisabled}
                                   activeOpacity={0.7}
                                 >
-                                  <Text style={[styles.modifierCardName, isSelected && styles.modifierCardTextSelected]}>
+                                  <Text
+                                    style={[
+                                      styles.modifierCardName,
+                                      isSelected &&
+                                        styles.modifierCardTextSelected,
+                                    ]}
+                                  >
                                     {m.ModifierName}
                                   </Text>
                                   {m.Price > 0 && (
-                                    <Text style={[styles.modifierCardPrice, isSelected && styles.modifierCardTextSelected]}>
+                                    <Text
+                                      style={[
+                                        styles.modifierCardPrice,
+                                        isSelected &&
+                                          styles.modifierCardTextSelected,
+                                      ]}
+                                    >
                                       +${Number(m.Price).toFixed(2)}
                                     </Text>
                                   )}
@@ -1737,7 +1942,9 @@ export default function MenuScreen() {
                                   )}
 
                                   {multiselect && isSelected ? (
-                                    <View style={styles.modifierCardQtyContainer}>
+                                    <View
+                                      style={styles.modifierCardQtyContainer}
+                                    >
                                       <TouchableOpacity
                                         onPress={(e) => {
                                           e.stopPropagation();
@@ -1745,18 +1952,35 @@ export default function MenuScreen() {
                                         }}
                                         style={styles.modifierCardQtyBtn}
                                       >
-                                        <Ionicons name="remove" size={12} color={Theme.primary} />
+                                        <Ionicons
+                                          name="remove"
+                                          size={12}
+                                          color={Theme.primary}
+                                        />
                                       </TouchableOpacity>
-                                      <Text style={styles.modifierCardQtyText}>{qty}</Text>
+                                      <Text style={styles.modifierCardQtyText}>
+                                        {qty}
+                                      </Text>
                                       <TouchableOpacity
                                         onPress={(e) => {
                                           e.stopPropagation();
                                           adjustModifierQuantity(m, gId, 1);
                                         }}
                                         disabled={isDisabled}
-                                        style={[styles.modifierCardQtyBtn, isDisabled && { borderColor: Theme.border }]}
+                                        style={[
+                                          styles.modifierCardQtyBtn,
+                                          isDisabled && {
+                                            borderColor: Theme.border,
+                                          },
+                                        ]}
                                       >
-                                        <Ionicons name="add" size={12} color={isDisabled ? '#ccc' : Theme.primary} />
+                                        <Ionicons
+                                          name="add"
+                                          size={12}
+                                          color={
+                                            isDisabled ? "#ccc" : Theme.primary
+                                          }
+                                        />
                                       </TouchableOpacity>
                                     </View>
                                   ) : null}
@@ -1932,7 +2156,11 @@ export default function MenuScreen() {
                     onPress={() => setShowOpenItemModal(false)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="close" size={22} color={Theme.textSecondary} />
+                    <Ionicons
+                      name="close"
+                      size={22}
+                      color={Theme.textSecondary}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -2016,8 +2244,14 @@ export default function MenuScreen() {
           setComboDish(null);
         }}
         dish={comboDish}
-        kitchenName={kitchens.find((k) => k.CategoryId === selectedKitchenId)?.KitchenTypeName || "KITCHEN"}
-        kitchenCode={kitchens.find((k) => k.CategoryId === selectedKitchenId)?.KitchenTypeCode || String(selectedKitchenId || "0")}
+        kitchenName={
+          kitchens.find((k) => k.CategoryId === selectedKitchenId)
+            ?.KitchenTypeName || "KITCHEN"
+        }
+        kitchenCode={
+          kitchens.find((k) => k.CategoryId === selectedKitchenId)
+            ?.KitchenTypeCode || String(selectedKitchenId || "0")
+        }
       />
     </SafeAreaView>
   );

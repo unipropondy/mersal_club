@@ -22,7 +22,7 @@ import {
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -46,7 +46,7 @@ type CreditTransactionType = {
   TransactionId: string;
   SettlementId?: string;
   BillNo?: string;
-  TransactionType: "DEBIT" | "CREDIT" | "ADJUSTMENT";
+  TransactionType: "DEBIT" | "CREDIT" | "ADJUSTMENT" | "CREDIT_SALE" | "SALE";
   Amount: number;
   PaymentMethod?: string;
   Remarks?: string;
@@ -102,7 +102,7 @@ export default function ReceivablesScreen() {
   const router = useRouter();
   const { user, token } = useAuthStore();
   const isFocused = useIsFocused();
-  const settingsStore = useCompanySettingsStore((state) => state.settings);
+  const settingsStore = useCompanySettingsStore((state: any) => state.settings);
   const currencySymbol = settingsStore?.currencySymbol || "$";
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const isMobile = screenWidth < 768;
