@@ -4,7 +4,7 @@ const sql = require('mssql');
 const config = {
   server: process.env.DB_SERVER || 'myerpcloud.dyndns.org',
   port: parseInt(process.env.DB_PORT || '9199'),
-  database: process.env.DB_NAME || 'UCSCLUB',
+  database: process.env.DB_NAME || 'UCSMERSAL',
   user: process.env.DB_USER || 'ups',
   password: process.env.DB_PASSWORD,
   options: { encrypt: false, trustServerCertificate: true },

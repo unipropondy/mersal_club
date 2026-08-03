@@ -267,7 +267,8 @@ const DishCardWrapper = React.memo(
       prevProps.width === nextProps.width &&
       prevProps.isPhone === nextProps.isPhone &&
       prevProps.isTablet === nextProps.isTablet &&
-      prevProps.isLandscape === nextProps.isLandscape
+      prevProps.isLandscape === nextProps.isLandscape &&
+      prevProps.onPress === nextProps.onPress
     );
   },
 );
@@ -956,6 +957,7 @@ export default function MenuScreen() {
     }
   };
 
+
   useEffect(() => {
     const initMenu = async () => {
       setIsInitialLoading(true);
@@ -1093,14 +1095,20 @@ export default function MenuScreen() {
         return; // Wait for user to confirm price
       }
 
-      // Prevent concurrent fetches for the same dish
-      if (fetchingModifiers.current.has(dish.DishId)) return;
-      fetchingModifiers.current.add(dish.DishId);
+      const dishId = dish.DishId || dish.id;
+      if (!dishId) {
+        addToCartSimple();
+        return;
+      }
 
-      const cachedData = modifierCache[dish.DishId];
+      // Prevent concurrent fetches for the same dish
+      if (fetchingModifiers.current.has(dishId)) return;
+      fetchingModifiers.current.add(dishId);
+
+      const cachedData = modifierCache[dishId];
       if (cachedData) {
         // 🐛 FIX: Always clear the guard before returning — cache hit path never reached finally{} block
-        fetchingModifiers.current.delete(dish.DishId);
+        fetchingModifiers.current.delete(dishId);
         if (cachedData.length > 0) {
           setSelectedDish(dish);
           setSelectedModifierQuantities({});
@@ -1120,7 +1128,7 @@ export default function MenuScreen() {
       setCustomMods([]);
 
       try {
-        const res = await fetch(`${API_URL}/api/menu/modifiers/${dish.DishId}`);
+        const res = await fetch(`${API_URL}/api/menu/modifiers/${dishId}`);
         const data = await res.json();
 
         if (Array.isArray(data) && data.length > 0) {
@@ -1133,7 +1141,7 @@ export default function MenuScreen() {
         addToCartSimple();
       } finally {
         // Remove dishId from fetching set after fetch completes
-        fetchingModifiers.current.delete(dish.DishId);
+        fetchingModifiers.current.delete(dishId);
         setLoadingModifiers(false);
       }
     },

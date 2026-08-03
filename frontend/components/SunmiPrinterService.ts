@@ -1,13 +1,9 @@
 // components/SunmiPrinterService.ts - AUTOMATIC 58MM/80MM DETECTOR AND FORMATTER
-import { NativeModules, Platform } from "react-native";
+import { Platform, NativeModules } from "react-native";
 import { API_URL } from "../constants/Config";
+import { formatToSingaporeDate, formatToSingaporeTime, parseDatabaseDate } from "../utils/timezoneHelper";
 import { useCompanySettingsStore } from "../stores/companySettingsStore";
 import { useGeneralSettingsStore } from "../stores/generalSettingsStore";
-import {
-  formatToSingaporeDate,
-  formatToSingaporeTime,
-  parseDatabaseDate,
-} from "../utils/timezoneHelper";
 
 const { SunmiPrinterDetector } = NativeModules;
 
@@ -45,10 +41,7 @@ export class PrintFormatter58mm implements PrintFormatter {
     if (displayText.length > maxWidth) {
       displayText = displayText.substring(0, maxWidth - 3) + "...";
     }
-    const padding = Math.max(
-      0,
-      Math.floor((maxWidth - displayText.length) / 2),
-    );
+    const padding = Math.max(0, Math.floor((maxWidth - displayText.length) / 2));
     return " ".repeat(padding) + displayText + "\n";
   }
 
@@ -114,10 +107,7 @@ export class PrintFormatter80mm implements PrintFormatter {
     if (displayText.length > maxWidth) {
       displayText = displayText.substring(0, maxWidth - 3) + "...";
     }
-    const padding = Math.max(
-      0,
-      Math.floor((maxWidth - displayText.length) / 2),
-    );
+    const padding = Math.max(0, Math.floor((maxWidth - displayText.length) / 2));
     return " ".repeat(padding) + displayText + "\n";
   }
 
@@ -181,10 +171,10 @@ export class SunmiPrinterManager {
 
   static async init(): Promise<void> {
     if (this.isInitialized) return;
-
+    
     console.log("🖨️ [SunmiPrinterManager] Detected Sunmi printer");
     try {
-      const model = ((Platform.constants as any).Model || "").toUpperCase();
+      const model = ((Platform.constants as any).Model || '').toUpperCase();
       console.log(`🖨️ [SunmiPrinterManager] Device Model: ${model}`);
       if (model.includes("D3")) {
         this.paperSize = "80mm";
@@ -199,22 +189,15 @@ export class SunmiPrinterManager {
         this.paperSize = "80mm";
       }
     } catch (e) {
-      console.warn(
-        "🖨️ [SunmiPrinterManager] Size detection failed, falling back to 80mm",
-        e,
-      );
+      console.warn("🖨️ [SunmiPrinterManager] Size detection failed, falling back to 80mm", e);
       this.paperSize = "80mm";
     }
 
     if (this.paperSize === "80mm") {
-      console.log(
-        "🖨️ [SunmiPrinterManager] Selected print template: PrintFormatter80mm",
-      );
+      console.log("🖨️ [SunmiPrinterManager] Selected print template: PrintFormatter80mm");
       this.formatter = new PrintFormatter80mm();
     } else {
-      console.log(
-        "🖨️ [SunmiPrinterManager] Selected print template: PrintFormatter58mm",
-      );
+      console.log("🖨️ [SunmiPrinterManager] Selected print template: PrintFormatter58mm");
       this.formatter = new PrintFormatter58mm();
     }
     this.isInitialized = true;
@@ -251,9 +234,9 @@ class SunmiPrinterService {
   private static async urlToBase64(url: string): Promise<string> {
     console.log("🔄 Converting URL to Base64 (Robust):", url);
     try {
-      if (Platform.OS === "android" || Platform.OS === "ios") {
-        const FileSystem = require("expo-file-system");
-        const filename = "temp_logo_sunmi_" + Date.now() + ".png";
+      if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        const FileSystem = require('expo-file-system');
+        const filename = 'temp_logo_sunmi_' + Date.now() + '.png';
         const fileUri = FileSystem.cacheDirectory + filename;
         const downloadRes = await FileSystem.downloadAsync(url, fileUri);
         const base64 = await FileSystem.readAsStringAsync(downloadRes.uri, {
@@ -265,10 +248,7 @@ class SunmiPrinterService {
         return base64;
       }
     } catch (err) {
-      console.warn(
-        "⚠️ FileSystem Base64 conversion failed, trying fallback fetch:",
-        err,
-      );
+      console.warn("⚠️ FileSystem Base64 conversion failed, trying fallback fetch:", err);
     }
 
     const response = await fetch(url);
@@ -289,18 +269,14 @@ class SunmiPrinterService {
   }
 
   private static async printLogos(companySettings: any): Promise<void> {
-    const hasCompanyLogo =
-      companySettings.showCompanyLogo && companySettings.companyLogo;
-    const hasHalalLogo =
-      companySettings.showHalalLogo && companySettings.halalLogo;
+    const hasCompanyLogo = companySettings.showCompanyLogo && companySettings.companyLogo;
+    const hasHalalLogo = companySettings.showHalalLogo && companySettings.halalLogo;
 
     if (hasCompanyLogo) {
       try {
         let logoUrl = companySettings.companyLogo;
         if (logoUrl && !logoUrl.startsWith("http")) {
-          logoUrl = logoUrl.startsWith("/")
-            ? `${API_URL}${logoUrl}`
-            : `${API_URL}/${logoUrl}`;
+          logoUrl = logoUrl.startsWith("/") ? `${API_URL}${logoUrl}` : `${API_URL}/${logoUrl}`;
         }
         const base64Image = await this.urlToBase64(logoUrl);
         await SunmiModule.printImageBase64(base64Image);
@@ -311,9 +287,7 @@ class SunmiPrinterService {
         try {
           let prodUrl = companySettings.companyLogo;
           if (prodUrl && !prodUrl.startsWith("http")) {
-            prodUrl = prodUrl.startsWith("/")
-              ? `${API_URL}${prodUrl}`
-              : `${API_URL}/${prodUrl}`;
+            prodUrl = prodUrl.startsWith("/") ? `${API_URL}${prodUrl}` : `${API_URL}/${prodUrl}`;
             const base64Image = await this.urlToBase64(prodUrl);
             await SunmiModule.printImageBase64(base64Image);
             await SunmiModule.lineWrap(1);
@@ -326,9 +300,7 @@ class SunmiPrinterService {
       try {
         let halalUrl = companySettings.halalLogo;
         if (halalUrl && !halalUrl.startsWith("http")) {
-          halalUrl = halalUrl.startsWith("/")
-            ? `${API_URL}${halalUrl}`
-            : `${API_URL}/${halalUrl}`;
+          halalUrl = halalUrl.startsWith("/") ? `${API_URL}${halalUrl}` : `${API_URL}/${halalUrl}`;
         }
         const base64Image = await this.urlToBase64(halalUrl);
         await SunmiModule.printImageBase64(base64Image);
@@ -339,9 +311,7 @@ class SunmiPrinterService {
         try {
           let prodUrl = companySettings.halalLogo;
           if (prodUrl && !prodUrl.startsWith("http")) {
-            prodUrl = prodUrl.startsWith("/")
-              ? `${API_URL}${prodUrl}`
-              : `${API_URL}/${prodUrl}`;
+            prodUrl = prodUrl.startsWith("/") ? `${API_URL}${prodUrl}` : `${API_URL}/${prodUrl}`;
             const base64Image = await this.urlToBase64(prodUrl);
             await SunmiModule.printImageBase64(base64Image);
             await SunmiModule.lineWrap(1);
@@ -351,16 +321,13 @@ class SunmiPrinterService {
     }
   }
 
-  static async printReceipt(
-    saleData: any,
-    companySettings: any,
-  ): Promise<boolean> {
+  static async printReceipt(saleData: any, companySettings: any): Promise<boolean> {
     try {
       if (!SunmiModule) {
         const initialized = await this.init();
         if (!initialized) return false;
       }
-
+      
       await SunmiPrinterManager.init();
       const formatter = SunmiPrinterManager.getFormatter();
       const nameLimit = formatter.getLineWidth() === 48 ? 24 : 12;
@@ -385,9 +352,7 @@ class SunmiPrinterService {
         if (SunmiModule.setBold) await SunmiModule.setBold(true);
       } catch (_) {}
 
-      await SunmiModule.printText(
-        formatter.center(companySettings.name || "YOUR STORE"),
-      );
+      await SunmiModule.printText(formatter.center(companySettings.name || "YOUR STORE"));
       await SunmiModule.lineWrap(1);
 
       try {
@@ -406,56 +371,36 @@ class SunmiPrinterService {
       }
 
       if (companySettings.phone) {
-        await SunmiModule.printText(
-          formatter.center(`📞 ${companySettings.phone}`),
-        );
+        await SunmiModule.printText(formatter.center(`📞 ${companySettings.phone}`));
       }
 
       if (companySettings.email) {
-        await SunmiModule.printText(
-          formatter.center(`📧 ${companySettings.email}`),
-        );
+        await SunmiModule.printText(formatter.center(`📧 ${companySettings.email}`));
       }
 
       if (companySettings.gstNo) {
-        await SunmiModule.printText(
-          formatter.center(`GST: ${companySettings.gstNo}`),
-        );
+        await SunmiModule.printText(formatter.center(`GST: ${companySettings.gstNo}`));
       }
 
       await SunmiModule.printText(formatter.doubleDivider("="));
       await SunmiModule.lineWrap(1);
 
       // ============ BILL DETAILS ============
-      const saleDate = saleData.originalDate
-        ? parseDatabaseDate(saleData.originalDate)
-        : saleData.date
-          ? parseDatabaseDate(saleData.date)
-          : new Date();
+      const saleDate = saleData.originalDate ? parseDatabaseDate(saleData.originalDate) : 
+                       saleData.date ? parseDatabaseDate(saleData.date) : 
+                       new Date();
       const { showBillTime } = useGeneralSettingsStore.getState().settings;
       const displayTime = showBillTime !== false;
-      const dateStr = formatToSingaporeDate(saleDate, {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      const dateStr = formatToSingaporeDate(saleDate, { day: '2-digit', month: '2-digit', year: 'numeric' });
       const timeStr = displayTime ? ` ${formatToSingaporeTime(saleDate)}` : "";
 
-      await SunmiModule.printText(
-        formatter.left(
-          `INVOICE NO: ${saleData.invoiceNumber || saleData.id || saleData.orderId || ""}`,
-        ),
-      );
+      await SunmiModule.printText(formatter.left(`INVOICE NO: ${saleData.invoiceNumber || saleData.id || saleData.orderId || ""}`));
       if (saleData.tableNo) {
-        await SunmiModule.printText(
-          formatter.left(`TABLE NO: ${saleData.tableNo}`),
-        );
+        await SunmiModule.printText(formatter.left(`TABLE NO: ${saleData.tableNo}`));
       }
       await SunmiModule.printText(formatter.left(`DATE: ${dateStr}${timeStr}`));
       if (saleData.waiterName && saleData.waiterName !== "Staff") {
-        await SunmiModule.printText(
-          formatter.left(`WAITER: ${saleData.waiterName}`),
-        );
+        await SunmiModule.printText(formatter.left(`WAITER: ${saleData.waiterName}`));
       }
       await SunmiModule.printText(formatter.divider("-"));
 
@@ -463,36 +408,18 @@ class SunmiPrinterService {
       await SunmiModule.printText(formatter.itemHeader());
       await SunmiModule.printText(formatter.divider("-"));
 
-      const printItems = (saleData.items || []).filter(
-        (i: any) => i.status !== "VOIDED",
-      );
-      const activeItems = (saleData.items || []).filter(
-        (i: any) => i.status !== "VOIDED" && i.statusCode !== 0,
-      );
-      const allItemsHaveSC =
-        activeItems.length > 0 &&
-        activeItems.every((item: any) => {
-          const isTakeawayItem =
-            item.isTakeaway ||
-            item.IsTakeaway ||
-            item.isTakeAway ||
-            item.IsTakeAway;
-          return (
-            !isTakeawayItem &&
-            (Number(item.isServiceCharge) === 1 ||
-              item.isServiceCharge === true)
-          );
-        });
+      const printItems = (saleData.items || []).filter((i: any) => i.status !== "VOIDED");
+      const activeItems = (saleData.items || []).filter((i: any) => i.status !== "VOIDED" && i.statusCode !== 0);
+      const allItemsHaveSC = activeItems.length > 0 && activeItems.every((item: any) => {
+        const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+        return !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+      });
 
       for (const item of printItems) {
-        const fullItemName =
-          item.name || item.DishName || item.ProductName || "";
-        const qtyNum =
-          parseInt(String(item.qty || item.quantity || item.Quantity || 1)) ||
-          1;
+        const fullItemName = item.name || item.DishName || item.ProductName || "";
+        const qtyNum = parseInt(String(item.qty || item.quantity || item.Quantity || 1)) || 1;
         const qty = qtyNum.toString();
-        const priceNum =
-          parseFloat(String(item.price || item.Price || item.Cost || 0)) || 0;
+        const priceNum = parseFloat(String(item.price || item.Price || item.Cost || 0)) || 0;
         const price = `${symbol}${priceNum.toFixed(2)}`;
         const totalNum = priceNum * qtyNum;
         const total = `${symbol}${totalNum.toFixed(2)}`;
@@ -501,9 +428,7 @@ class SunmiPrinterService {
           await SunmiModule.printText(formatter.left(fullItemName));
           await SunmiModule.printText(formatter.itemRow("", qty, price, total));
         } else {
-          await SunmiModule.printText(
-            formatter.itemRow(fullItemName, qty, price, total),
-          );
+          await SunmiModule.printText(formatter.itemRow(fullItemName, qty, price, total));
         }
 
         const songName = item.songName || item.SongName || "";
@@ -511,36 +436,18 @@ class SunmiPrinterService {
           await SunmiModule.printText(formatter.left(`   ` + "🎵 " + songName));
         }
 
-        const isTakeawayItem =
-          item.isTakeaway ||
-          item.IsTakeaway ||
-          item.isTakeAway ||
-          item.IsTakeAway;
-        const isSC =
-          !isTakeawayItem &&
-          (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+        const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+        const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
         if (isSC && !allItemsHaveSC) {
-          await SunmiModule.printText(
-            formatter.left(
-              `    [Service Charge ${companySettings.serviceChargePercentage}%]`,
-            ),
-          );
+          await SunmiModule.printText(formatter.left(`    [Service Charge ${companySettings.serviceChargePercentage}%]`));
         }
 
         if (item.modifiers && Array.isArray(item.modifiers)) {
           for (const m of item.modifiers) {
             const mName = (m.ModifierName || m.name || "").trim();
-            const mAmt =
-              parseFloat(
-                String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0),
-              ) || 0;
+            const mAmt = parseFloat(String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0)) || 0;
             if (mAmt > 0) {
-              await SunmiModule.printText(
-                formatter.twoCols(
-                  `   + ${mName}`,
-                  `${symbol}${(mAmt * qtyNum).toFixed(2)}`,
-                ),
-              );
+              await SunmiModule.printText(formatter.twoCols(`   + ${mName}`, `${symbol}${(mAmt * qtyNum).toFixed(2)}`));
             }
           }
         }
@@ -548,24 +455,11 @@ class SunmiPrinterService {
         const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
         if (discAmt > 0) {
           const discType = item.discountType || "percentage";
-          const isCombo =
-            item.isCombo === true ||
-            String(item.isCombo) === "1" ||
-            item.isCombo === 1;
-          const discountBasis = isCombo
-            ? (item.basePrice ?? item.price ?? 0)
-            : (item.price ?? 0);
-          const effectiveDisc =
-            discType === "percentage"
-              ? discAmt
-              : Math.min(discAmt, discountBasis);
-          const discStr =
-            discType === "percentage"
-              ? `-${discAmt}%`
-              : `-${symbol}${effectiveDisc.toFixed(2)}`;
-          await SunmiModule.printText(
-            formatter.left(`    Discount: ${discStr}`),
-          );
+          const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+          const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
+          const effectiveDisc = discType === "percentage" ? discAmt : Math.min(discAmt, discountBasis);
+          const discStr = discType === "percentage" ? `-${discAmt}%` : `-${symbol}${effectiveDisc.toFixed(2)}`;
+          await SunmiModule.printText(formatter.left(`    Discount: ${discStr}`));
         }
       }
 
@@ -577,20 +471,15 @@ class SunmiPrinterService {
       (saleData.items || []).forEach((item: any) => {
         if (item.status === "VOIDED") return;
         const qtyNum = parseInt(String(item.qty || item.quantity || 1)) || 1;
-        const isCombo =
-          item.isCombo === true ||
-          String(item.isCombo) === "1" ||
-          item.isCombo === 1;
-        const discountBasis = isCombo
-          ? (item.basePrice ?? item.price ?? 0)
-          : (item.price ?? 0);
+        const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+        const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
         const baseTotal = (item.price || 0) * qtyNum;
         let itemDiscount = 0;
         const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
         const discType = item.discountType || "percentage";
         if (discAmt > 0) {
           if (discType === "percentage") {
-            itemDiscount = discountBasis * (discAmt / 100) * qtyNum;
+            itemDiscount = (discountBasis * (discAmt / 100)) * qtyNum;
           } else {
             itemDiscount = Math.min(discAmt, discountBasis) * qtyNum;
           }
@@ -603,76 +492,45 @@ class SunmiPrinterService {
       if (orderDiscount === 0 && saleData.discount) {
         orderDiscount = parseFloat(String(saleData.discount.amount || 0)) || 0;
       }
-      if (
-        orderDiscount === 0 &&
-        saleData.discount?.applied &&
-        saleData.discount.value > 0
-      ) {
+      if (orderDiscount === 0 && saleData.discount?.applied && saleData.discount.value > 0) {
         const subtotalPostItemDisc = grossTotal - totalItemDiscount;
         if (saleData.discount.type === "percentage") {
-          orderDiscount =
-            (subtotalPostItemDisc * saleData.discount.value) / 100;
+           orderDiscount = (subtotalPostItemDisc * saleData.discount.value) / 100;
         } else {
-          orderDiscount = Math.min(
-            saleData.discount.value,
-            subtotalPostItemDisc,
-          );
+           orderDiscount = Math.min(saleData.discount.value, subtotalPostItemDisc);
         }
       }
-      const orderDiscountType =
-        saleData.discountType || saleData.discount?.type || "percentage";
-      const orderDiscountValue =
-        saleData.discountValue || saleData.discount?.value || 0;
+      const orderDiscountType = saleData.discountType || saleData.discount?.type || "percentage";
+      const orderDiscountValue = saleData.discountValue || saleData.discount?.value || 0;
 
       const hasAnyDiscount = totalItemDiscount > 0 || orderDiscount > 0;
       let currentSubtotal = grossTotal;
 
-      await SunmiModule.printText(
-        formatter.twoCols("Sub Total:", `${symbol}${grossTotal.toFixed(2)}`),
-      );
+      await SunmiModule.printText(formatter.twoCols("Sub Total:", `${symbol}${grossTotal.toFixed(2)}`));
 
       if (totalItemDiscount > 0) {
-        await SunmiModule.printText(
-          formatter.twoCols(
-            "Item Discounts:",
-            `-${symbol}${totalItemDiscount.toFixed(2)}`,
-          ),
-        );
+        await SunmiModule.printText(formatter.twoCols("Item Discounts:", `-${symbol}${totalItemDiscount.toFixed(2)}`));
         currentSubtotal -= totalItemDiscount;
       }
 
       if (orderDiscount > 0) {
-        const discLabel =
-          orderDiscountType === "percentage"
-            ? `Discount (${orderDiscountValue}%):`
-            : "Discount:";
-        await SunmiModule.printText(
-          formatter.twoCols(discLabel, `-${symbol}${orderDiscount.toFixed(2)}`),
-        );
+        const discLabel = orderDiscountType === "percentage" ? `Discount (${orderDiscountValue}%):` : "Discount:";
+        await SunmiModule.printText(formatter.twoCols(discLabel, `-${symbol}${orderDiscount.toFixed(2)}`));
         currentSubtotal -= orderDiscount;
       }
 
       if (hasAnyDiscount) {
         await SunmiModule.printText(formatter.divider("-"));
-        await SunmiModule.printText(
-          formatter.twoCols(
-            "Net Amount:",
-            `${symbol}${currentSubtotal.toFixed(2)}`,
-          ),
-        );
+        await SunmiModule.printText(formatter.twoCols("Net Amount:", `${symbol}${currentSubtotal.toFixed(2)}`));
       }
       await SunmiModule.printText(formatter.divider("-"));
 
       // ============ SERVICE CHARGE & GST ============
-      let finalTotal =
-        saleData.total || saleData.totalAmount || currentSubtotal;
+      let finalTotal = saleData.total || saleData.totalAmount || currentSubtotal;
       const gstRate = companySettings.gstPercentage || 0;
       const scPercentage = companySettings.serviceChargePercentage || 0;
-      const savedSC =
-        saleData.serviceCharge != null
-          ? parseFloat(String(saleData.serviceCharge))
-          : null;
-
+      const savedSC = saleData.serviceCharge != null ? parseFloat(String(saleData.serviceCharge)) : null;
+      
       let serviceChargeAmount = 0;
       if (savedSC !== null) {
         serviceChargeAmount = savedSC;
@@ -681,34 +539,22 @@ class SunmiPrinterService {
         (saleData.items || []).forEach((item: any) => {
           if (item.status === "VOIDED") return;
           const qtyNum = parseInt(String(item.qty || item.quantity || 1)) || 1;
-          const isCombo =
-            item.isCombo === true ||
-            String(item.isCombo) === "1" ||
-            item.isCombo === 1;
-          const discountBasis = isCombo
-            ? (item.basePrice ?? item.price ?? 0)
-            : (item.price ?? 0);
+          const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+          const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
           const baseTotal = (item.price || 0) * qtyNum;
           let itemDiscount = 0;
           const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
           const discType = item.discountType || "percentage";
           if (discAmt > 0) {
             if (discType === "percentage") {
-              itemDiscount = discountBasis * (discAmt / 100) * qtyNum;
+              itemDiscount = (discountBasis * (discAmt / 100)) * qtyNum;
             } else {
               itemDiscount = Math.min(discAmt, discountBasis) * qtyNum;
             }
           }
           const itemSubtotal = baseTotal - itemDiscount;
-          const isTakeawayItem =
-            item.isTakeaway ||
-            item.IsTakeaway ||
-            item.isTakeAway ||
-            item.IsTakeAway;
-          const isSC =
-            !isTakeawayItem &&
-            (Number(item.isServiceCharge) === 1 ||
-              item.isServiceCharge === true);
+          const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+          const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
           if (isSC) {
             scEligibleSubtotal += itemSubtotal;
           }
@@ -718,10 +564,7 @@ class SunmiPrinterService {
           const subtotalPostItemDisc = grossTotal - totalItemDiscount;
           if (subtotalPostItemDisc > 0) {
             const proportion = scEligibleSubtotal / subtotalPostItemDisc;
-            scEligibleNet = Math.max(
-              0,
-              scEligibleSubtotal - proportion * orderDiscount,
-            );
+            scEligibleNet = Math.max(0, scEligibleSubtotal - proportion * orderDiscount);
           }
         }
         serviceChargeAmount = scEligibleNet * (scPercentage / 100);
@@ -729,129 +572,74 @@ class SunmiPrinterService {
       const hasSC = serviceChargeAmount > 0;
       const companySettingsStore = useCompanySettingsStore.getState().settings;
       const takeawayRate = companySettingsStore?.takeawayCharges || 0;
-      const takeawayQty = (saleData.items || []).reduce(
-        (sum: number, item: any) => {
-          const isTW =
-            item.isTakeaway ||
-            item.IsTakeaway ||
-            item.isTakeAway ||
-            item.IsTakeAway;
-          const isVoided = item.status === "VOIDED" || item.StatusCode === 0;
-          if (isTW && !isVoided) {
-            return sum + (item.qty || item.quantity || 1);
-          }
-          return sum;
-        },
-        0,
-      );
+      const takeawayQty = (saleData.items || []).reduce((sum: number, item: any) => {
+        const isTW = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+        const isVoided = item.status === "VOIDED" || item.StatusCode === 0;
+        if (isTW && !isVoided) {
+          return sum + (item.qty || item.quantity || 1);
+        }
+        return sum;
+      }, 0);
       const takeawayCharge = takeawayQty * takeawayRate;
-
-      const taxableAmount =
-        currentSubtotal + serviceChargeAmount + takeawayCharge;
+      
+      const taxableAmount = currentSubtotal + serviceChargeAmount + takeawayCharge;
       const gstAmountRaw = gstRate > 0 ? taxableAmount * (gstRate / 100) : 0;
       const gstAmount = Math.round(gstAmountRaw * 100) / 100;
-
+      
       if (finalTotal === 0) {
         finalTotal = taxableAmount + gstAmount;
       }
-
-      const printedRoundOff =
-        saleData.roundOff && saleData.roundOff !== 0
-          ? parseFloat((finalTotal - (taxableAmount + gstAmount)).toFixed(2))
-          : 0;
+      
+      const printedRoundOff = saleData.roundOff && saleData.roundOff !== 0
+        ? parseFloat((finalTotal - (taxableAmount + gstAmount)).toFixed(2))
+        : 0;
 
       // Removed duplicate Sub Total print statement to prevent printing it twice when there is no discount.
 
       if (hasSC) {
-        await SunmiModule.printText(
-          formatter.twoCols(
-            allItemsHaveSC ? "Service Charge:" : "Item Service Charge:",
-            `${symbol}${serviceChargeAmount.toFixed(2)}`,
-          ),
-        );
+        await SunmiModule.printText(formatter.twoCols(
+          allItemsHaveSC ? "Service Charge:" : "Item Service Charge:",
+          `${symbol}${serviceChargeAmount.toFixed(2)}`
+        ));
       }
 
       if (takeawayCharge > 0) {
-        await SunmiModule.printText(
-          formatter.twoCols(
-            `Takeaway Charges (${symbol}${takeawayRate.toFixed(2)}*${takeawayQty}):`,
-            `${symbol}${takeawayCharge.toFixed(2)}`,
-          ),
-        );
+        await SunmiModule.printText(formatter.twoCols(`Takeaway Charges (${symbol}${takeawayRate.toFixed(2)}*${takeawayQty}):`, `${symbol}${takeawayCharge.toFixed(2)}`));
       }
 
       if (gstRate > 0) {
-        await SunmiModule.printText(
-          formatter.twoCols(
-            `GST (${gstRate}%):`,
-            `${symbol}${gstAmount.toFixed(2)}`,
-          ),
-        );
+        await SunmiModule.printText(formatter.twoCols(`GST (${gstRate}%):`, `${symbol}${gstAmount.toFixed(2)}`));
         await SunmiModule.printText(formatter.divider("-"));
       }
 
       if (printedRoundOff && printedRoundOff !== 0) {
         const roLabel = printedRoundOff > 0 ? "+Round Off:" : "Round Off:";
-        await SunmiModule.printText(
-          formatter.twoCols(roLabel, `${symbol}${printedRoundOff.toFixed(2)}`),
-        );
+        await SunmiModule.printText(formatter.twoCols(roLabel, `${symbol}${printedRoundOff.toFixed(2)}`));
         await SunmiModule.printText(formatter.divider("-"));
       }
 
       // ============ GRAND TOTAL ============
-      await SunmiModule.printText(
-        formatter.twoCols("GRAND TOTAL:", `${symbol}${finalTotal.toFixed(2)}`),
-      );
+      await SunmiModule.printText(formatter.twoCols("GRAND TOTAL:", `${symbol}${finalTotal.toFixed(2)}`));
       await SunmiModule.printText(formatter.doubleDivider("="));
 
       // ============ PAYMENT ============
-      if (
-        saleData.rewardPointsEarned &&
-        parseFloat(String(saleData.rewardPointsEarned)) > 0
-      ) {
-        await SunmiModule.printText(
-          formatter.twoCols(
-            "Points Earned:",
-            `+${symbol}${parseFloat(String(saleData.rewardPointsEarned)).toFixed(2)}`,
-          ),
-        );
-        if (
-          saleData.memberRewardBalance &&
-          parseFloat(String(saleData.memberRewardBalance)) > 0
-        ) {
-          await SunmiModule.printText(
-            formatter.twoCols(
-              "Member Credit:",
-              `${symbol}${parseFloat(String(saleData.memberRewardBalance)).toFixed(2)}`,
-            ),
-          );
+      if (saleData.rewardPointsEarned && parseFloat(String(saleData.rewardPointsEarned)) > 0) {
+        await SunmiModule.printText(formatter.twoCols("Points Earned:", `+${symbol}${parseFloat(String(saleData.rewardPointsEarned)).toFixed(2)}`));
+        if (saleData.memberRewardBalance && parseFloat(String(saleData.memberRewardBalance)) > 0) {
+          await SunmiModule.printText(formatter.twoCols("Member Credit:", `${symbol}${parseFloat(String(saleData.memberRewardBalance)).toFixed(2)}`));
         }
         await SunmiModule.printText(formatter.divider("-"));
       }
 
       if (saleData.isCheckout) {
-        await SunmiModule.printText(
-          formatter.center("PAYMENT STATUS: PENDING"),
-        );
+        await SunmiModule.printText(formatter.center("PAYMENT STATUS: PENDING"));
       } else {
-        await SunmiModule.printText(
-          formatter.twoCols("PAYMENT:", saleData.paymentMethod || "Cash"),
-        );
+        await SunmiModule.printText(formatter.twoCols("PAYMENT:", saleData.paymentMethod || "Cash"));
 
         if (saleData.cashPaid && saleData.cashPaid > 0) {
-          await SunmiModule.printText(
-            formatter.twoCols(
-              "PAID:",
-              `${symbol}${saleData.cashPaid.toFixed(2)}`,
-            ),
-          );
+          await SunmiModule.printText(formatter.twoCols("PAID:", `${symbol}${saleData.cashPaid.toFixed(2)}`));
           if (saleData.change && saleData.change > 0) {
-            await SunmiModule.printText(
-              formatter.twoCols(
-                "CHANGE:",
-                `${symbol}${saleData.change.toFixed(2)}`,
-              ),
-            );
+            await SunmiModule.printText(formatter.twoCols("CHANGE:", `${symbol}${saleData.change.toFixed(2)}`));
           }
         }
       }
@@ -860,9 +648,7 @@ class SunmiPrinterService {
 
       // ============ FOOTER ============
       if (saleData.isCheckout) {
-        await SunmiModule.printText(
-          formatter.center("PLEASE PAY AT THE COUNTER"),
-        );
+        await SunmiModule.printText(formatter.center("PLEASE PAY AT THE COUNTER"));
       } else {
         await SunmiModule.printText(formatter.center("THANK YOU! COME AGAIN!"));
       }
@@ -870,11 +656,7 @@ class SunmiPrinterService {
       await SunmiModule.printText(formatter.center("SMART-POS BY UNIPROSG"));
 
       if (companySettings.gstPercentage > 0) {
-        await SunmiModule.printText(
-          formatter.center(
-            `* Prices include ${companySettings.gstPercentage}% GST`,
-          ),
-        );
+        await SunmiModule.printText(formatter.center(`* Prices include ${companySettings.gstPercentage}% GST`));
       }
 
       await SunmiModule.lineWrap(3);
@@ -887,16 +669,13 @@ class SunmiPrinterService {
     }
   }
 
-  static async printKOT(
-    data: any,
-    type: "NEW" | "ADDITIONAL" | "REPRINT" | "KDS_PRINT" = "NEW",
-  ): Promise<boolean> {
+  static async printKOT(data: any, type: "NEW" | "ADDITIONAL" | "REPRINT" | "KDS_PRINT" = "NEW"): Promise<boolean> {
     try {
       if (!SunmiModule) {
         const initialized = await this.init();
         if (!initialized) return false;
       }
-
+      
       await SunmiPrinterManager.init();
       const formatter = SunmiPrinterManager.getFormatter();
 
@@ -911,36 +690,21 @@ class SunmiPrinterService {
         reset: is80mm ? 20 : 24,
       };
 
-      const title =
-        type === "KDS_PRINT"
-          ? "KDS PRINT"
-          : type === "REPRINT"
-            ? "REPRINT"
-            : type === "ADDITIONAL"
-              ? "ADDITIONAL"
-              : "NEW ORDER";
+      const title = type === "KDS_PRINT" ? "KDS PRINT" : type === "REPRINT" ? "REPRINT" : type === "ADDITIONAL" ? "ADDITIONAL" : "NEW ORDER";
       const items = data.items || [];
       const tableNo = data.tableNo || "N/A";
       const orderNo = data.orderNo || data.orderId || "N/A";
       const waiter = data.waiterName || "Staff";
       const now = new Date();
-      const dateStr = formatToSingaporeDate(now, {
-        day: "2-digit",
-        month: "2-digit",
-      });
-      const timeStr = formatToSingaporeTime(now, {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+      const dateStr = formatToSingaporeDate(now, { day: '2-digit', month: '2-digit' });
+      const timeStr = formatToSingaporeTime(now, { hour: '2-digit', minute: '2-digit', hour12: false });
       const timestamp = `${dateStr} ${timeStr}`;
 
       const setSize = async (size: number) => {
         try {
           if (SunmiModule.setFontSize) await SunmiModule.setFontSize(size);
           else if (SunmiModule.setTextSize) await SunmiModule.setTextSize(size);
-          else if (SunmiModule.updateFontSize)
-            await SunmiModule.updateFontSize(size);
+          else if (SunmiModule.updateFontSize) await SunmiModule.updateFontSize(size);
         } catch (e) {
           console.log("Font size not supported");
         }
@@ -974,9 +738,7 @@ class SunmiPrinterService {
         for (let idx = 0; idx < lines.length; idx++) {
           const line = lines[idx];
           if (idx === 0) {
-            await SunmiModule.printText(
-              formatter.left(`[${item.qty || item.quantity || 1}] ${line}`),
-            );
+            await SunmiModule.printText(formatter.left(`[${item.qty || item.quantity || 1}] ${line}`));
           } else {
             await SunmiModule.printText(formatter.left(`    ${line}`));
           }
@@ -989,12 +751,7 @@ class SunmiPrinterService {
           await SunmiModule.lineWrap(1);
         }
 
-        const isTw = !!(
-          item.isTakeaway ||
-          item.IsTakeaway ||
-          item.isTakeAway ||
-          item.IsTakeAway
-        );
+        const isTw = !!(item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway);
         if (isTw) {
           // Increase size to item size and enable bold
           await setSize(fontSizes.item);
@@ -1011,15 +768,12 @@ class SunmiPrinterService {
         if (item.modifiers && item.modifiers.length > 0) {
           await setSize(fontSizes.modifier);
           for (const mod of item.modifiers) {
-            await SunmiModule.printText(
-              formatter.left(`  + ${mod.ModifierName || mod.name}`),
-            );
+            await SunmiModule.printText(formatter.left(`  + ${mod.ModifierName || mod.name}`));
             await SunmiModule.lineWrap(1);
           }
         }
 
-        const noteText =
-          item.note || item.notes || item.Remarks || item.remarks;
+        const noteText = item.note || item.notes || item.Remarks || item.remarks;
         if (noteText) {
           await setSize(fontSizes.note);
           await SunmiModule.printText(formatter.left(`  * NOTE: ${noteText}`));

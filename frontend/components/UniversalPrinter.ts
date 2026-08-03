@@ -1,18 +1,17 @@
 // frontend/src/components/UniversalPrinter.ts - COMPLETE WITH DISCOUNT SUPPORT ✅
 
+import { format } from "date-fns";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Alert, Platform } from "react-native";
 import ThermalPrinter from "react-native-thermal-printer";
 import { API_URL } from "../constants/Config";
+import { formatToSingaporeDate, formatToSingaporeTime, formatToSingaporeDateTime } from "../utils/timezoneHelper";
+import BillPDFGenerator from "./BillPDFGenerator";
+import { PrinterDetector } from "./PrinterDetector";
+import SunmiPrinterService from "./SunmiPrinterService";
 import { useCompanySettingsStore } from "../stores/companySettingsStore";
 import { useGeneralSettingsStore } from "../stores/generalSettingsStore";
-import {
-  formatToSingaporeDateTime,
-  formatToSingaporeTime
-} from "../utils/timezoneHelper";
-import BillPDFGenerator from "./BillPDFGenerator";
-import SunmiPrinterService from "./SunmiPrinterService";
 
 // Printer types
 export type PrinterType =
@@ -61,16 +60,17 @@ class UniversalPrinter {
    */
   private static buildItemFingerprint(items: any[]): string {
     return items
-      .map((i: any) =>
-        String(
-          i.lineItemId ??
+      .map(
+        (i: any) =>
+          String(
+            i.lineItemId ??
             i.LineItemId ??
             i.dishId ??
             i.DishId ??
             i.id ??
             i.name ??
-            "?",
-        ),
+            "?"
+          )
       )
       .sort()
       .join(",");
@@ -87,7 +87,7 @@ class UniversalPrinter {
     const cacheKey = `${orderId}:${this.buildItemFingerprint(items)}`;
     if (this.printedOrdersCache.has(cacheKey)) {
       console.log(
-        `🛡️ [UniversalPrinter] Duplicate print blocked | Order: ${orderId} | Items: ${items.length}`,
+        `🛡️ [UniversalPrinter] Duplicate print blocked | Order: ${orderId} | Items: ${items.length}`
       );
       return true;
     }
@@ -102,9 +102,7 @@ class UniversalPrinter {
       if (now - ts > TTL) this.printedReceiptsCache.delete(key);
     }
     if (this.printedReceiptsCache.has(orderId)) {
-      console.log(
-        `🛡️ [UniversalPrinter] Duplicate receipt print blocked for Order: ${orderId}`,
-      );
+      console.log(`🛡️ [UniversalPrinter] Duplicate receipt print blocked for Order: ${orderId}`);
       return true;
     }
     this.printedReceiptsCache.set(orderId, now);
@@ -140,13 +138,11 @@ class UniversalPrinter {
 
   static async openCashDrawer(printerIpOverride?: string): Promise<boolean> {
     try {
-      const { default: CashDrawerService } =
-        await import("../services/CashDrawerService");
-      const ip =
-        printerIpOverride || (await CashDrawerService.getCashierPrinterIp());
+      const { default: CashDrawerService } = await import('../services/CashDrawerService');
+      const ip = printerIpOverride || await CashDrawerService.getCashierPrinterIp();
       return await CashDrawerService.openCashDrawer(ip);
     } catch (e) {
-      console.warn("[UniversalPrinter] Cash drawer open failed:", e);
+      console.warn('[UniversalPrinter] Cash drawer open failed:', e);
       return false;
     }
   }
@@ -166,11 +162,7 @@ class UniversalPrinter {
     }
   }
 
-  private static async isIpReachable(
-    ip: string,
-    port: number = 80,
-    timeoutMs: number = 600,
-  ): Promise<boolean> {
+  private static async isIpReachable(ip: string, port: number = 80, timeoutMs: number = 600): Promise<boolean> {
     if (!ip || ip.trim() === "") return false;
     const cleanIp = ip.trim();
     const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(cleanIp);
@@ -184,7 +176,7 @@ class UniversalPrinter {
         method: "GET",
         signal: controller.signal,
         mode: "no-cors",
-        headers: { "Cache-Control": "no-cache" },
+        headers: { "Cache-Control": "no-cache" }
       });
       clearTimeout(timer);
       console.log(`🔌 [isIpReachable] Connected/Alive: ${cleanIp}`);
@@ -406,10 +398,7 @@ class UniversalPrinter {
       const data = await response.json();
       return !!(data && data.success && data.online);
     } catch (e) {
-      console.warn(
-        "[UniversalPrinter] Failed to check print bridge status:",
-        e,
-      );
+      console.warn("[UniversalPrinter] Failed to check print bridge status:", e);
       return false;
     }
   }
@@ -417,7 +406,7 @@ class UniversalPrinter {
   private static async queuePrintJob(
     printerType: number,
     kitchenTypeValue: string | number | undefined,
-    content: string,
+    content: string
   ): Promise<boolean> {
     try {
       const storeId = "STORE_001";
@@ -425,17 +414,14 @@ class UniversalPrinter {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer unipro-pos-bridge-token-2026",
-          "x-store-id": storeId,
+          "Authorization": "Bearer unipro-pos-bridge-token-2026",
+          "x-store-id": storeId
         },
         body: JSON.stringify({
           printerType,
-          kitchenTypeValue:
-            kitchenTypeValue !== undefined
-              ? String(kitchenTypeValue)
-              : undefined,
-          content,
-        }),
+          kitchenTypeValue: kitchenTypeValue !== undefined ? String(kitchenTypeValue) : undefined,
+          content
+        })
       });
       const data = await response.json();
       if (data.success !== true || !data.jobId) {
@@ -448,30 +434,21 @@ class UniversalPrinter {
       while (Date.now() - start < 20000) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         try {
-          const statusRes = await fetch(
-            `${API_URL}/api/print-jobs/status/${jobId}`,
-          );
+          const statusRes = await fetch(`${API_URL}/api/print-jobs/status/${jobId}`);
           const statusData = await statusRes.json();
-          if (statusData.success && statusData.status === "COMPLETED") {
-            console.log(
-              `✅ [UniversalPrinter] Print job ${jobId} completed successfully on bridge`,
-            );
+          if (statusData.success && statusData.status === 'COMPLETED') {
+            console.log(`✅ [UniversalPrinter] Print job ${jobId} completed successfully on bridge`);
             return true;
           }
-          if (statusData.success && statusData.status === "FAILED") {
-            console.warn(
-              `❌ [UniversalPrinter] Print job ${jobId} failed on bridge side:`,
-              statusData.error,
-            );
+          if (statusData.success && statusData.status === 'FAILED') {
+            console.warn(`❌ [UniversalPrinter] Print job ${jobId} failed on bridge side:`, statusData.error);
             return false;
           }
         } catch (err) {
           console.error("[UniversalPrinter] Status poll error:", err);
         }
       }
-      console.warn(
-        `[UniversalPrinter] Print job ${jobId} timed out after 20s (bridge offline/no printer)`,
-      );
+      console.warn(`[UniversalPrinter] Print job ${jobId} timed out after 20s (bridge offline/no printer)`);
       return false;
     } catch (e) {
       console.warn("[UniversalPrinter] Failed to queue print job:", e);
@@ -483,7 +460,7 @@ class UniversalPrinter {
   private static async logPrintJob(
     orderId: string,
     orderNo: string,
-    type: "NEW" | "ADDITIONAL" | "REPRINT" | "KDS_PRINT",
+    type: "NEW" | "ADDITIONAL" | "REPRINT" | "KDS_PRINT"
   ): Promise<void> {
     try {
       const baseUrl = API_URL;
@@ -517,22 +494,14 @@ class UniversalPrinter {
         console.log(`📡 [Web Print Bridge] Queueing KDS print`);
         const success = await this.queuePrintJob(4, undefined, text);
         if (success) {
-          await this.logPrintJob(
-            orderData.orderId,
-            orderData.orderNo,
-            "REPRINT",
-          );
+          await this.logPrintJob(orderData.orderId, orderData.orderNo, "REPRINT");
           return true;
         }
 
         // Web Fallback: If Print Bridge failed, trigger iframe preview
-        console.log(
-          "⚠️ [Web KDS Print] Print Bridge queue failed. Falling back to iframe print preview.",
-        );
+        console.log("⚠️ [Web KDS Print] Print Bridge queue failed. Falling back to iframe print preview.");
         const html = this.generateKOTHTML(orderData, "KDS_PRINT");
-        let frame = document.getElementById(
-          "kot-print-iframe",
-        ) as HTMLIFrameElement;
+        let frame = document.getElementById("kot-print-iframe") as HTMLIFrameElement;
         if (!frame) {
           frame = document.createElement("iframe");
           frame.id = "kot-print-iframe";
@@ -557,15 +526,10 @@ class UniversalPrinter {
         await this.logPrintJob(orderData.orderId, orderData.orderNo, "REPRINT");
         return true;
       } catch (err) {
-        console.warn(
-          "[Web Print Bridge] KDS Print failed, falling back to iframe print preview:",
-          err,
-        );
+        console.warn("[Web Print Bridge] KDS Print failed, falling back to iframe print preview:", err);
         try {
           const html = this.generateKOTHTML(orderData, "KDS_PRINT");
-          let frame = document.getElementById(
-            "kot-print-iframe",
-          ) as HTMLIFrameElement;
+          let frame = document.getElementById("kot-print-iframe") as HTMLIFrameElement;
           if (!frame) {
             frame = document.createElement("iframe");
             frame.id = "kot-print-iframe";
@@ -587,11 +551,7 @@ class UniversalPrinter {
             frame.contentWindow?.addEventListener("load", triggerPrint);
             setTimeout(triggerPrint, 800);
           }
-          await this.logPrintJob(
-            orderData.orderId,
-            orderData.orderNo,
-            "REPRINT",
-          );
+          await this.logPrintJob(orderData.orderId, orderData.orderNo, "REPRINT");
           return true;
         } catch (fallbackErr) {
           console.error("Web KDS print fallback failed:", fallbackErr);
@@ -615,15 +575,8 @@ class UniversalPrinter {
         // Try bridge directly — skip pre-flight isBridgeOnline() check which can falsely report offline
         const text = this.formatKOTThermalText(orderData, type);
         // Map kitchenCode or kitchenTypeValue
-        const kitchenTypeValue =
-          orderData.kitchenCode ||
-          orderData.KitchenCode ||
-          orderData.kitchenTypeValue ||
-          orderData.KitchenTypeValue ||
-          "0";
-        console.log(
-          `📡 [Web Print Bridge] Queueing KOT to Kitchen type: ${kitchenTypeValue}`,
-        );
+        const kitchenTypeValue = orderData.kitchenCode || orderData.KitchenCode || orderData.kitchenTypeValue || orderData.KitchenTypeValue || "0";
+        console.log(`📡 [Web Print Bridge] Queueing KOT to Kitchen type: ${kitchenTypeValue}`);
         const success = await this.queuePrintJob(2, kitchenTypeValue, text);
         if (success) {
           await this.logPrintJob(orderData.orderId, orderData.orderNo, type);
@@ -631,13 +584,9 @@ class UniversalPrinter {
         }
 
         // 🚀 Fallback: If Print Bridge failed or printer not detected on web, trigger iframe print preview immediately
-        console.log(
-          "⚠️ [Web KOT Print] Print Bridge queue failed. Falling back to iframe print preview.",
-        );
+        console.log("⚠️ [Web KOT Print] Print Bridge queue failed. Falling back to iframe print preview.");
         const html = this.generateKOTHTML(orderData, type);
-        let frame = document.getElementById(
-          "kot-print-iframe",
-        ) as HTMLIFrameElement;
+        let frame = document.getElementById("kot-print-iframe") as HTMLIFrameElement;
         if (!frame) {
           frame = document.createElement("iframe");
           frame.id = "kot-print-iframe";
@@ -665,15 +614,10 @@ class UniversalPrinter {
         await this.logPrintJob(orderData.orderId, orderData.orderNo, type);
         return true;
       } catch (err) {
-        console.warn(
-          "[Web Print Bridge] KOT Queue failed, falling back to iframe print preview:",
-          err,
-        );
+        console.warn("[Web Print Bridge] KOT Queue failed, falling back to iframe print preview:", err);
         try {
           const html = this.generateKOTHTML(orderData, type);
-          let frame = document.getElementById(
-            "kot-print-iframe",
-          ) as HTMLIFrameElement;
+          let frame = document.getElementById("kot-print-iframe") as HTMLIFrameElement;
           if (!frame) {
             frame = document.createElement("iframe");
             frame.id = "kot-print-iframe";
@@ -710,7 +654,7 @@ class UniversalPrinter {
     try {
       const company = await BillPDFGenerator.loadSettings(userId);
       const html = this.generateKOTHTML(orderData, type);
-
+      
       let targetIp: string = printerIpOverride || "";
       if (!targetIp) {
         if (type === "KDS_PRINT") {
@@ -770,14 +714,10 @@ class UniversalPrinter {
             await this.logPrintJob(orderData.orderId, orderData.orderNo, type);
             return true;
           } catch (printError) {
-            console.warn(
-              "❌ Hardware KOT failed/timeout, falling back directly to PDF...",
-            );
+            console.warn("❌ Hardware KOT failed/timeout, falling back directly to PDF...");
           }
         } else {
-          console.warn(
-            `❌ configured printer IP ${targetIp} not reachable, falling back directly to PDF...`,
-          );
+          console.warn(`❌ configured printer IP ${targetIp} not reachable, falling back directly to PDF...`);
         }
       } else {
         // ✅ 2. Try Sunmi direct print (Silent) (Only if IP is NOT entered)
@@ -792,11 +732,7 @@ class UniversalPrinter {
 
             if (printed) {
               console.log("✅ KOT Printed with Sunmi - NO PREVIEW");
-              await this.logPrintJob(
-                orderData.orderId,
-                orderData.orderNo,
-                type,
-              );
+              await this.logPrintJob(orderData.orderId, orderData.orderNo, type);
               return true;
             }
           } catch (sunmiErr) {
@@ -842,17 +778,8 @@ class UniversalPrinter {
     const deviceNo = data.deviceNo || "1";
     const orderNo = data.orderNo || data.orderId || "N/A";
     const waiter = data.waiterName || "Staff";
-    const kotDateStr = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Singapore",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(new Date());
-    const kotTimeStr = formatToSingaporeTime(new Date(), {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    const kotDateStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Singapore', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
+    const kotTimeStr = formatToSingaporeTime(new Date(), { hour: '2-digit', minute: '2-digit', hour12: false });
     const timestamp = `${kotDateStr} ${kotTimeStr}`;
     const kitchenName = data.kitchenName || "";
 
@@ -1004,65 +931,35 @@ class UniversalPrinter {
               if (type === "KDS_PRINT") {
                 const kitchenGroups: Record<string, any[]> = {};
                 items.forEach((item: any) => {
-                  const kName = (
-                    item.KitchenTypeName ||
-                    item.kitchenTypeName ||
-                    item.dishGroupName ||
-                    item.categoryName ||
-                    "KITCHEN"
-                  )
-                    .toUpperCase()
-                    .trim();
+                  const kName = (item.KitchenTypeName || item.kitchenTypeName || item.dishGroupName || item.categoryName || "KITCHEN").toUpperCase().trim();
                   if (!kitchenGroups[kName]) kitchenGroups[kName] = [];
                   kitchenGroups[kName].push(item);
                 });
 
-                return Object.entries(kitchenGroups)
-                  .map(([kName, groupItems]) => {
-                    return `
+                return Object.entries(kitchenGroups).map(([kName, groupItems]) => {
+                  return `
                     <div style="font-size: 18px; font-weight: bold; margin-top: 15px; border-bottom: 2px solid #000; padding-bottom: 3px; text-transform: uppercase;">
                       <b>${kName}</b>
                     </div>
-                    ${groupItems
-                      .map((item: any) => {
-                        const noteText =
-                          item.note ||
-                          item.notes ||
-                          item.Remarks ||
-                          item.remarks;
-                        const comboSels =
-                          item.comboSelections ||
-                          (typeof item.ComboDetailsJSON === "string" &&
-                          item.ComboDetailsJSON
-                            ? (() => {
-                                try {
-                                  const p = JSON.parse(item.ComboDetailsJSON);
-                                  return Array.isArray(p) ? p : p.groups;
-                                } catch {
-                                  return undefined;
-                                }
-                              })()
-                            : Array.isArray(item.ComboDetailsJSON)
-                              ? item.ComboDetailsJSON
-                              : undefined) ||
-                          [];
-                        const hasCombo =
-                          Array.isArray(comboSels) && comboSels.length > 0;
+                    ${groupItems.map((item: any) => {
+                      const noteText = item.note || item.notes || item.Remarks || item.remarks;
+                      const comboSels = item.comboSelections || 
+                        (typeof item.ComboDetailsJSON === 'string' && item.ComboDetailsJSON 
+                          ? (() => { try { const p = JSON.parse(item.ComboDetailsJSON); return Array.isArray(p) ? p : p.groups; } catch { return undefined; } })() 
+                          : (Array.isArray(item.ComboDetailsJSON) ? item.ComboDetailsJSON : undefined)) || [];
+                      const hasCombo = Array.isArray(comboSels) && comboSels.length > 0;
 
-                        return `
+                      return `
                         <div class="item-row">
                           <div class="item-main">
                             <div class="item-qty">${item.quantity || item.qty || 1}</div>
                             <div class="item-name">
-                              ${(item.name || "").replace(/\n/g, "<br/>")}
-                              ${item.songName || item.SongName ? `<div style="font-size: 14px; font-weight: normal; color: #555; margin-top: 2px;">🎵 ${item.songName || item.SongName}</div>` : ""}
+                              ${(item.name || "").replace(/\n/g, '<br/>')}
+                              ${item.songName || item.SongName ? `<div style="font-size: 14px; font-weight: normal; color: #555; margin-top: 2px;">🎵 ${item.songName || item.SongName}</div>` : ''}
                             </div>
                           </div>
                           ${
-                            item.isTakeaway ||
-                            item.IsTakeaway ||
-                            item.isTakeAway ||
-                            item.IsTakeAway
+                            item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway
                               ? `<div class="modifier-list"><span class="modifier-item" style="font-size: 14px; font-weight: normal; color: #555;">- Takeaway</span></div>`
                               : ""
                           }
@@ -1073,56 +970,35 @@ class UniversalPrinter {
                           }
                           ${
                             hasCombo
-                              ? `<div class="modifier-list">${comboSels
-                                  .map(
-                                    (g: any) => `
+                              ? `<div class="modifier-list">${comboSels.map((g: any) => `
                                   <div style="font-weight: bold; margin-top: 2px;">${g.groupName}:</div>
                                   ${g.items?.map((opt: any) => `<span class="modifier-item" style="padding-left: 10px;">↳ ${opt.name}</span>`).join("")}
-                                `,
-                                  )
-                                  .join("")}</div>`
+                                `).join("")}</div>`
                               : ""
                           }
                           ${noteText ? `<div class="remarks">* NOTE: ${noteText}</div>` : ""}
                         </div>
                       `;
-                      })
-                      .join("")}
+                    }).join("")}
                   `;
-                  })
-                  .join("");
+                }).join("");
               }
 
-              return items
-                .map((item: any) => {
-                  const noteText =
-                    item.note || item.notes || item.Remarks || item.remarks;
-                  const comboSels =
-                    item.comboSelections ||
-                    (typeof item.ComboDetailsJSON === "string" &&
-                    item.ComboDetailsJSON
-                      ? (() => {
-                          try {
-                            const p = JSON.parse(item.ComboDetailsJSON);
-                            return Array.isArray(p) ? p : p.groups;
-                          } catch {
-                            return undefined;
-                          }
-                        })()
-                      : Array.isArray(item.ComboDetailsJSON)
-                        ? item.ComboDetailsJSON
-                        : undefined) ||
-                    [];
-                  const hasCombo =
-                    Array.isArray(comboSels) && comboSels.length > 0;
+              return items.map((item: any) => {
+                const noteText = item.note || item.notes || item.Remarks || item.remarks;
+                const comboSels = item.comboSelections || 
+                  (typeof item.ComboDetailsJSON === 'string' && item.ComboDetailsJSON 
+                    ? (() => { try { const p = JSON.parse(item.ComboDetailsJSON); return Array.isArray(p) ? p : p.groups; } catch { return undefined; } })() 
+                    : (Array.isArray(item.ComboDetailsJSON) ? item.ComboDetailsJSON : undefined)) || [];
+                const hasCombo = Array.isArray(comboSels) && comboSels.length > 0;
 
-                  return `
+                return `
                   <div class="item-row">
                     <div class="item-main">
                       <div class="item-qty">${item.quantity || item.qty || 1}</div>
                       <div class="item-name">
-                        ${(item.name || "").replace(/\n/g, "<br/>")}
-                        ${item.songName || item.SongName ? `<div style="font-size: 14px; font-weight: normal; color: #555; margin-top: 2px;">🎵 ${item.songName || item.SongName}</div>` : ""}
+                        ${(item.name || "").replace(/\n/g, '<br/>')}
+                        ${item.songName || item.SongName ? `<div style="font-size: 14px; font-weight: normal; color: #555; margin-top: 2px;">🎵 ${item.songName || item.SongName}</div>` : ''}
                       </div>
                     </div>
                     ${
@@ -1179,8 +1055,7 @@ class UniversalPrinter {
                     }
                   </div>
                 `;
-                })
-                .join("");
+              }).join("");
             })()}
           </div>
 
@@ -1211,17 +1086,8 @@ class UniversalPrinter {
     const kitchenName = data.kitchenName || "";
 
     let text = `[C]<B>${title}</B>\n`;
-    const kotDateStr = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Singapore",
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-    }).format(new Date());
-    const kotTimeStr = formatToSingaporeTime(new Date(), {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    const kotDateStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Singapore', day: '2-digit', month: '2-digit', year: '2-digit' }).format(new Date());
+    const kotTimeStr = formatToSingaporeTime(new Date(), { hour: '2-digit', minute: '2-digit', hour12: false });
     text += `[C]${kotDateStr} ${kotTimeStr}\n`;
     text += "[L]--------------------------------\n";
 
@@ -1235,15 +1101,7 @@ class UniversalPrinter {
     if (type === "KDS_PRINT") {
       const kitchenGroups: Record<string, any[]> = {};
       items.forEach((item: any) => {
-        const kName = (
-          item.KitchenTypeName ||
-          item.kitchenTypeName ||
-          item.dishGroupName ||
-          item.categoryName ||
-          "KITCHEN"
-        )
-          .toUpperCase()
-          .trim();
+        const kName = (item.KitchenTypeName || item.kitchenTypeName || item.dishGroupName || item.categoryName || "KITCHEN").toUpperCase().trim();
         if (!kitchenGroups[kName]) kitchenGroups[kName] = [];
         kitchenGroups[kName].push(item);
       });
@@ -1251,7 +1109,7 @@ class UniversalPrinter {
       for (const [kName, groupItems] of Object.entries(kitchenGroups)) {
         text += `\n[L]<B>${kName}</B>\n`;
         text += "[L]--------------------------------\n";
-
+        
         groupItems.forEach((item: any) => {
           const qtyNum = item.quantity || item.qty || 1;
           const itemName = item.name || item.DishName || "";
@@ -1294,13 +1152,12 @@ class UniversalPrinter {
             });
           }
 
-          const noteText =
-            item.note || item.notes || item.Remarks || item.remarks;
+          const noteText = item.note || item.notes || item.Remarks || item.remarks;
           if (noteText) {
             text += `[L]    * NOTE: ${noteText}\n`;
           }
         });
-
+        
         text += "[L]--------------------------------\n";
       }
     } else {
@@ -1346,8 +1203,7 @@ class UniversalPrinter {
           });
         }
 
-        const noteText =
-          item.note || item.notes || item.Remarks || item.remarks;
+        const noteText = item.note || item.notes || item.Remarks || item.remarks;
         if (noteText) {
           text += `[L]    * NOTE: ${noteText}\n`;
         }
@@ -1395,22 +1251,15 @@ class UniversalPrinter {
           String(saleData.tableNo).toUpperCase() === "TAKE AWAY";
 
         const pType = isTakeaway ? 3 : 1;
-        console.log(
-          `📡 [Web Print Bridge] Queueing receipt to printer type: ${pType}`,
-        );
+        console.log(`📡 [Web Print Bridge] Queueing receipt to printer type: ${pType}`);
         const success = await this.queuePrintJob(pType, undefined, text);
         if (success) return true;
 
         // 🚀 Fallback: If Print Bridge failed or printer not detected on web, trigger iframe print preview immediately
-        console.log(
-          "⚠️ [Web Receipt Print] Print Bridge queue failed. Falling back to iframe print preview.",
-        );
+        console.log("⚠️ [Web Receipt Print] Print Bridge queue failed. Falling back to iframe print preview.");
         return await this.offerPDFFallback(saleData, outletId, t, discountInfo);
       } catch (err) {
-        console.warn(
-          "[Web Print Bridge] Receipt Queue failed, falling back to iframe print preview:",
-          err,
-        );
+        console.warn("[Web Print Bridge] Receipt Queue failed, falling back to iframe print preview:", err);
         return await this.offerPDFFallback(saleData, outletId, t, discountInfo);
       }
     }
@@ -1426,7 +1275,7 @@ class UniversalPrinter {
         try {
           const now = Date.now();
           let printers = this.cachedPrinters;
-          if (!printers || now - this.lastPrintersFetchTime > 30000) {
+          if (!printers || (now - this.lastPrintersFetchTime > 30000)) {
             const response = await fetch(
               `${API_URL}/api/settings/kitchen-printers`,
             );
@@ -1486,10 +1335,7 @@ class UniversalPrinter {
               const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error("WiFi Timeout")), 3000),
               );
-              const printed = await Promise.race([
-                printPromise,
-                timeoutPromise,
-              ]);
+              const printed = await Promise.race([printPromise, timeoutPromise]);
 
               if (printed) return;
             } catch (err) {
@@ -1505,9 +1351,7 @@ class UniversalPrinter {
         }
 
         // If no IP is configured, print using the Sunmi built-in printer
-        console.log(
-          "🖨️ No printer IP configured. Printing to Sunmi built-in printer.",
-        );
+        console.log("🖨️ No printer IP configured. Printing to Sunmi built-in printer.");
         try {
           const printed = await this.printThermalReceipt(
             saleData,
@@ -1587,31 +1431,21 @@ class UniversalPrinter {
         // ✅ Pass discount to saleData for Sunmi printer
         const enhancedSaleData = { ...saleData };
         let discAmount = discountInfo?.amount;
-        if (
-          discountInfo?.applied &&
-          (!discAmount || discAmount === 0) &&
-          discountInfo.value > 0
-        ) {
+        if (discountInfo?.applied && (!discAmount || discAmount === 0) && discountInfo.value > 0) {
           let grossTotal = 0;
           let totalItemDiscount = 0;
           (saleData.items || []).forEach((item: any) => {
             if (item.status === "VOIDED") return;
-            const qtyNum =
-              parseInt(String(item.qty || item.quantity || 1)) || 1;
-            const isCombo =
-              item.isCombo === true ||
-              String(item.isCombo) === "1" ||
-              item.isCombo === 1;
-            const discountBasis = isCombo
-              ? (item.basePrice ?? item.price ?? 0)
-              : (item.price ?? 0);
+            const qtyNum = parseInt(String(item.qty || item.quantity || 1)) || 1;
+            const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+            const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
             const baseTotal = (item.price || 0) * qtyNum;
             let itemDiscount = 0;
             const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
             const discType = item.discountType || "percentage";
             if (discAmt > 0) {
               if (discType === "percentage") {
-                itemDiscount = discountBasis * (discAmt / 100) * qtyNum;
+                itemDiscount = (discountBasis * (discAmt / 100)) * qtyNum;
               } else {
                 itemDiscount = Math.min(discAmt, discountBasis) * qtyNum;
               }
@@ -1621,9 +1455,9 @@ class UniversalPrinter {
           });
           const subtotalPostItemDisc = grossTotal - totalItemDiscount;
           if (discountInfo.type === "percentage") {
-            discAmount = (subtotalPostItemDisc * discountInfo.value) / 100;
+             discAmount = (subtotalPostItemDisc * discountInfo.value) / 100;
           } else {
-            discAmount = Math.min(discountInfo.value, subtotalPostItemDisc);
+             discAmount = Math.min(discountInfo.value, subtotalPostItemDisc);
           }
         }
         if (discountInfo?.applied && discAmount && discAmount > 0) {
@@ -1650,18 +1484,16 @@ class UniversalPrinter {
       return false;
     }
   }
-  private static async getBase64LogoStr(
-    logoUrl: string,
-  ): Promise<string | null> {
+  private static async getBase64LogoStr(logoUrl: string): Promise<string | null> {
     if (!logoUrl) return null;
     try {
       let url = logoUrl;
       if (url && !url.startsWith("http") && !url.startsWith("data:")) {
         url = url.startsWith("/") ? `${API_URL}${url}` : `${API_URL}/${url}`;
       }
-      if (Platform.OS === "android" || Platform.OS === "ios") {
-        const FileSystem = require("expo-file-system");
-        const filename = "temp_logo_thermal_" + Date.now() + ".png";
+      if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        const FileSystem = require('expo-file-system');
+        const filename = 'temp_logo_thermal_' + Date.now() + '.png';
         const fileUri = FileSystem.cacheDirectory + filename;
         const downloadRes = await FileSystem.downloadAsync(url, fileUri);
         const base64 = await FileSystem.readAsStringAsync(downloadRes.uri, {
@@ -1773,27 +1605,18 @@ class UniversalPrinter {
     if (company.email) text += `[C]Email: ${company.email}\n`;
     text += "[C]------------------------------------------------\n";
 
-    const saleDate = saleData.originalDate
-      ? new Date(saleData.originalDate)
-      : saleData.date
-        ? new Date(saleData.date)
-        : new Date();
+    const saleDate = saleData.originalDate ? new Date(saleData.originalDate) : 
+                     saleData.date ? new Date(saleData.date) : 
+                     new Date();
 
     text += `[L]Bill No: ${saleData.invoiceNumber || saleData.id || saleData.orderId || ""}\n`;
     if (saleData.tableNo) {
       text += `[L]<font size=\'big\'><B>TABLE: ${saleData.tableNo}</B></font>\n`;
     }
-    const dateFormatted = new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Singapore",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(saleDate);
+    const dateFormatted = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Singapore', day: '2-digit', month: '2-digit', year: 'numeric' }).format(saleDate);
     const { showBillTime } = useGeneralSettingsStore.getState().settings;
     const displayTime = showBillTime !== false;
-    const timeFormatted = displayTime
-      ? ` ${formatToSingaporeTime(saleDate)}`
-      : "";
+    const timeFormatted = displayTime ? ` ${formatToSingaporeTime(saleDate)}` : "";
     text += `[L]Date: ${dateFormatted}${timeFormatted}\n`;
     if (saleData.waiterName && saleData.waiterName !== "Staff") {
       text += `[L]Waiter: ${saleData.waiterName}\n`;
@@ -1807,22 +1630,11 @@ class UniversalPrinter {
     const printItems = (saleData.items || []).filter(
       (i: any) => i.status !== "VOIDED",
     );
-    const activeItems = (saleData.items || []).filter(
-      (i: any) => i.status !== "VOIDED" && i.statusCode !== 0,
-    );
-    const allItemsHaveSC =
-      activeItems.length > 0 &&
-      activeItems.every((item: any) => {
-        const isTakeawayItem =
-          item.isTakeaway ||
-          item.IsTakeaway ||
-          item.isTakeAway ||
-          item.IsTakeAway;
-        return (
-          !isTakeawayItem &&
-          (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true)
-        );
-      });
+    const activeItems = (saleData.items || []).filter((i: any) => i.status !== "VOIDED" && i.statusCode !== 0);
+    const allItemsHaveSC = activeItems.length > 0 && activeItems.every((item: any) => {
+      const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+      return !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+    });
 
     printItems.forEach((item: any) => {
       // 🛡️ Robust field mapping
@@ -1852,14 +1664,8 @@ class UniversalPrinter {
         text += `[L]   ${item.name}\n`;
       }
 
-      const isTakeawayItem =
-        item.isTakeaway ||
-        item.IsTakeaway ||
-        item.isTakeAway ||
-        item.IsTakeAway;
-      const isSC =
-        !isTakeawayItem &&
-        (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+      const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+      const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
       if (isSC && !allItemsHaveSC) {
         text += `[L]   [Service Charge ${company.serviceChargePercentage}%]\n`;
       }
@@ -1868,10 +1674,7 @@ class UniversalPrinter {
       if (item.modifiers && Array.isArray(item.modifiers)) {
         item.modifiers.forEach((m: any) => {
           const mName = (m.ModifierName || m.name || "").trim();
-          const mAmt =
-            parseFloat(
-              String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0),
-            ) || 0;
+          const mAmt = parseFloat(String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0)) || 0;
           if (mAmt > 0) {
             const leftStr = `   + ${mName}`;
             const rightStr = `${symbol}${(mAmt * qtyNum).toFixed(2)}`;
@@ -1884,17 +1687,9 @@ class UniversalPrinter {
       const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
       if (discAmt > 0) {
         const discType = item.discountType || "percentage";
-        const isCombo =
-          item.isCombo === true ||
-          String(item.isCombo) === "1" ||
-          item.isCombo === 1;
-        const discountBasis = isCombo
-          ? (item.basePrice ?? item.price ?? 0)
-          : (item.price ?? 0);
-        const effectiveDisc =
-          discType === "percentage"
-            ? discAmt
-            : Math.min(discAmt, discountBasis);
+        const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+        const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
+        const effectiveDisc = discType === "percentage" ? discAmt : Math.min(discAmt, discountBasis);
         const discStr =
           discType === "percentage"
             ? `-${discAmt}%`
@@ -1905,7 +1700,7 @@ class UniversalPrinter {
       // VIP Discount
       const vipDiscAmt = Number(item.vipDiscountAmount || 0);
       if (vipDiscAmt > 0) {
-        text += `[L]      VIP Discount: -${symbol}${vipDiscAmt.toFixed(2)}\n`;
+        text += `[L]      VIP Discount: -${symbol}${(vipDiscAmt).toFixed(2)}\n`;
       }
     });
 
@@ -1915,25 +1710,19 @@ class UniversalPrinter {
     // Calculate item-level discounts, VIP discounts and gross total
     let grossTotal = 0;
     let totalItemDiscount = 0;
-    let totalVipDiscount =
-      parseFloat(String(saleData.vipDiscountAmount || 0)) || 0;
+    let totalVipDiscount = parseFloat(String(saleData.vipDiscountAmount || 0)) || 0;
     (saleData.items || []).forEach((item: any) => {
       if (item.status === "VOIDED") return;
       const qtyNum = parseInt(String(item.qty || item.quantity || 1)) || 1;
-      const isCombo =
-        item.isCombo === true ||
-        String(item.isCombo) === "1" ||
-        item.isCombo === 1;
-      const discountBasis = isCombo
-        ? (item.basePrice ?? item.price ?? 0)
-        : (item.price ?? 0);
+      const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+      const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
       const baseTotal = (item.price || 0) * qtyNum;
       let itemDiscount = 0;
       const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
       const discType = item.discountType || "percentage";
       if (discAmt > 0) {
         if (discType === "percentage") {
-          itemDiscount = discountBasis * (discAmt / 100) * qtyNum;
+          itemDiscount = (discountBasis * (discAmt / 100)) * qtyNum;
         } else {
           itemDiscount = Math.min(discAmt, discountBasis) * qtyNum;
         }
@@ -1964,35 +1753,24 @@ class UniversalPrinter {
           : null);
 
     let orderDiscount = finalDiscountInfo?.amount || 0;
-    if (
-      finalDiscountInfo?.applied &&
-      orderDiscount === 0 &&
-      finalDiscountInfo.value > 0
-    ) {
+    if (finalDiscountInfo?.applied && orderDiscount === 0 && finalDiscountInfo.value > 0) {
       const subtotalPostItemDisc = grossTotal - totalItemDiscount;
       if (finalDiscountInfo.type === "percentage") {
-        orderDiscount = (subtotalPostItemDisc * finalDiscountInfo.value) / 100;
+         orderDiscount = (subtotalPostItemDisc * finalDiscountInfo.value) / 100;
       } else {
-        orderDiscount = Math.min(finalDiscountInfo.value, subtotalPostItemDisc);
+         orderDiscount = Math.min(finalDiscountInfo.value, subtotalPostItemDisc);
       }
       if (finalDiscountInfo) {
-        finalDiscountInfo.amount = orderDiscount;
+         finalDiscountInfo.amount = orderDiscount;
       }
     }
-    const hasAnyDiscount =
-      totalItemDiscount > 0 || orderDiscount > 0 || totalVipDiscount > 0;
+    const hasAnyDiscount = totalItemDiscount > 0 || orderDiscount > 0 || totalVipDiscount > 0;
     let currentSubtotal = grossTotal;
 
-    text += this.formatTwoCols48(
-      "Sub Total:",
-      `${symbol}${grossTotal.toFixed(2)}`,
-    );
+    text += this.formatTwoCols48("Sub Total:", `${symbol}${grossTotal.toFixed(2)}`);
 
     if (totalItemDiscount > 0) {
-      text += this.formatTwoCols48(
-        "Item Discounts:",
-        `-${symbol}${totalItemDiscount.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48("Item Discounts:", `-${symbol}${totalItemDiscount.toFixed(2)}`);
       currentSubtotal -= totalItemDiscount;
     }
 
@@ -2001,28 +1779,19 @@ class UniversalPrinter {
         finalDiscountInfo?.type === "percentage"
           ? `Discount (${finalDiscountInfo.value}%):`
           : "Discount:";
-      text += this.formatTwoCols48(
-        discLabel,
-        `-${symbol}${orderDiscount.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48(discLabel, `-${symbol}${orderDiscount.toFixed(2)}`);
       currentSubtotal -= orderDiscount;
     }
 
     if (totalVipDiscount > 0) {
-      text += this.formatTwoCols48(
-        "VIP Discount Savings:",
-        `-${symbol}${totalVipDiscount.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48("VIP Discount Savings:", `-${symbol}${totalVipDiscount.toFixed(2)}`);
       currentSubtotal -= totalVipDiscount;
     }
 
     if (hasAnyDiscount) {
       text += "[L]------------------------------------------------\n";
       const netLabel = "Net Amount:";
-      text += this.formatTwoCols48(
-        netLabel,
-        `${symbol}${currentSubtotal.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48(netLabel, `${symbol}${currentSubtotal.toFixed(2)}`);
     }
 
     let finalTotal = saleData.total || saleData.totalAmount || currentSubtotal;
@@ -2030,11 +1799,8 @@ class UniversalPrinter {
     const gstRate = company.gstPercentage || 0;
     const scPercentage = company.serviceChargePercentage || 0;
     // For reprints, use stored SC amount; otherwise calculate fresh
-    const savedSC =
-      saleData.serviceCharge != null
-        ? parseFloat(String(saleData.serviceCharge))
-        : null;
-
+    const savedSC = saleData.serviceCharge != null ? parseFloat(String(saleData.serviceCharge)) : null;
+    
     let serviceChargeAmount = 0;
     if (savedSC !== null) {
       serviceChargeAmount = savedSC;
@@ -2043,33 +1809,22 @@ class UniversalPrinter {
       (saleData.items || []).forEach((item: any) => {
         if (item.status === "VOIDED") return;
         const qtyNum = parseInt(String(item.qty || item.quantity || 1)) || 1;
-        const isCombo =
-          item.isCombo === true ||
-          String(item.isCombo) === "1" ||
-          item.isCombo === 1;
-        const discountBasis = isCombo
-          ? (item.basePrice ?? item.price ?? 0)
-          : (item.price ?? 0);
+        const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
+        const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
         const baseTotal = (item.price || 0) * qtyNum;
         let itemDiscount = 0;
         const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
         const discType = item.discountType || "percentage";
         if (discAmt > 0) {
           if (discType === "percentage") {
-            itemDiscount = discountBasis * (discAmt / 100) * qtyNum;
+            itemDiscount = (discountBasis * (discAmt / 100)) * qtyNum;
           } else {
             itemDiscount = Math.min(discAmt, discountBasis) * qtyNum;
           }
         }
         const itemSubtotal = baseTotal - itemDiscount;
-        const isTakeawayItem =
-          item.isTakeaway ||
-          item.IsTakeaway ||
-          item.isTakeAway ||
-          item.IsTakeAway;
-        const isSC =
-          !isTakeawayItem &&
-          (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+        const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+        const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
         if (isSC) {
           scEligibleSubtotal += itemSubtotal;
         }
@@ -2079,93 +1834,64 @@ class UniversalPrinter {
         const subtotalPostItemDisc = grossTotal - totalItemDiscount;
         if (subtotalPostItemDisc > 0) {
           const proportion = scEligibleSubtotal / subtotalPostItemDisc;
-          scEligibleNet = Math.max(
-            0,
-            scEligibleSubtotal - proportion * orderDiscount,
-          );
+          scEligibleNet = Math.max(0, scEligibleSubtotal - proportion * orderDiscount);
         }
       }
       serviceChargeAmount = scEligibleNet * (scPercentage / 100);
     }
 
     const hasSC = serviceChargeAmount > 0;
-    const effectiveSCPercentage =
-      serviceChargeAmount > 0 && currentSubtotal > 0
-        ? Math.round((serviceChargeAmount / currentSubtotal) * 100)
-        : scPercentage;
+    const effectiveSCPercentage = serviceChargeAmount > 0 && currentSubtotal > 0
+      ? Math.round((serviceChargeAmount / currentSubtotal) * 100)
+      : scPercentage;
 
     const companySettings = useCompanySettingsStore.getState().settings;
     const takeawayRate = companySettings?.takeawayCharges || 0;
-    const takeawayQty = (saleData.items || []).reduce(
-      (sum: number, item: any) => {
-        const isTW =
-          item.isTakeaway ||
-          item.IsTakeaway ||
-          item.isTakeAway ||
-          item.IsTakeAway;
-        const isVoided = item.status === "VOIDED" || item.StatusCode === 0;
-        if (isTW && !isVoided) {
-          return sum + (item.qty || item.quantity || 1);
-        }
-        return sum;
-      },
-      0,
-    );
+    const takeawayQty = (saleData.items || []).reduce((sum: number, item: any) => {
+      const isTW = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
+      const isVoided = item.status === "VOIDED" || item.StatusCode === 0;
+      if (isTW && !isVoided) {
+        return sum + (item.qty || item.quantity || 1);
+      }
+      return sum;
+    }, 0);
 
     const takeawayCharge = takeawayQty * takeawayRate;
-    const taxableAmount =
-      currentSubtotal + serviceChargeAmount + takeawayCharge;
+    const taxableAmount = currentSubtotal + serviceChargeAmount + takeawayCharge;
     const gstAmountRaw = hasGST ? taxableAmount * (gstRate / 100) : 0;
     const gstAmount = Math.round(gstAmountRaw * 100) / 100;
-
+    
     if (finalTotal === 0) {
       finalTotal = taxableAmount + gstAmount;
     }
-
-    const printedRoundOff =
-      saleData.roundOff && saleData.roundOff !== 0
-        ? parseFloat((finalTotal - (taxableAmount + gstAmount)).toFixed(2))
-        : 0;
+    
+    const printedRoundOff = saleData.roundOff && saleData.roundOff !== 0
+      ? parseFloat((finalTotal - (taxableAmount + gstAmount)).toFixed(2))
+      : 0;
 
     // Removed duplicate Sub Total print statement to prevent printing it twice when there is no discount.
-
+    
     if (hasSC) {
-      text += this.formatTwoCols48(
-        allItemsHaveSC ? "Service Charge:" : "Item Service Charge:",
-        `${symbol}${serviceChargeAmount.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48(allItemsHaveSC ? "Service Charge:" : "Item Service Charge:", `${symbol}${serviceChargeAmount.toFixed(2)}`);
     }
 
     if (takeawayCharge > 0) {
-      text += this.formatTwoCols48(
-        `Takeaway Charges (${symbol}${takeawayRate.toFixed(2)}*${takeawayQty}):`,
-        `${symbol}${takeawayCharge.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48(`Takeaway Charges (${symbol}${takeawayRate.toFixed(2)}*${takeawayQty}):`, `${symbol}${takeawayCharge.toFixed(2)}`);
     }
 
     if (hasGST && gstAmount > 0) {
-      text += this.formatTwoCols48(
-        `GST (${gstRate}%):`,
-        `${symbol}${gstAmount.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48(`GST (${gstRate}%):`, `${symbol}${gstAmount.toFixed(2)}`);
       text += "[L]------------------------------------------------\n";
     }
 
     if (printedRoundOff && printedRoundOff !== 0) {
       const roSign = printedRoundOff > 0 ? "+" : "";
-      text += this.formatTwoCols48(
-        "Round Off:",
-        `${roSign}${symbol}${printedRoundOff.toFixed(2)}`,
-      );
+      text += this.formatTwoCols48("Round Off:", `${roSign}${symbol}${printedRoundOff.toFixed(2)}`);
       text += "[L]------------------------------------------------\n";
     }
 
     // Payment Details
-    if (
-      saleData.payments &&
-      Array.isArray(saleData.payments) &&
-      saleData.payments.length > 0
-    ) {
+    if (saleData.payments && Array.isArray(saleData.payments) && saleData.payments.length > 0) {
       text += "[L]Payment Details:\n";
       saleData.payments.forEach((p: any) => {
         const modeLabel = `  ${String(p.payMode || p.payModeName || p.Remarks || "Payment")}`;
@@ -2183,23 +1909,11 @@ class UniversalPrinter {
     text += `[R]<font size=\'big\'><B>TOTAL: ${symbol}${finalTotal.toFixed(2)}</B></font>\n`;
 
     // 🏆 Reward points summary lines
-    if (
-      saleData.rewardPointsEarned &&
-      parseFloat(String(saleData.rewardPointsEarned)) > 0
-    ) {
+    if (saleData.rewardPointsEarned && parseFloat(String(saleData.rewardPointsEarned)) > 0) {
       text += "[L]------------------------------------------------\n";
-      text += this.formatTwoCols48(
-        "Reward Points Earned:",
-        `+${symbol}${parseFloat(String(saleData.rewardPointsEarned)).toFixed(2)}`,
-      );
-      if (
-        saleData.memberRewardBalance &&
-        parseFloat(String(saleData.memberRewardBalance)) > 0
-      ) {
-        text += this.formatTwoCols48(
-          "Available Member Credit:",
-          `${symbol}${parseFloat(String(saleData.memberRewardBalance)).toFixed(2)}`,
-        );
+      text += this.formatTwoCols48("Reward Points Earned:", `+${symbol}${parseFloat(String(saleData.rewardPointsEarned)).toFixed(2)}`);
+      if (saleData.memberRewardBalance && parseFloat(String(saleData.memberRewardBalance)) > 0) {
+        text += this.formatTwoCols48("Available Member Credit:", `${symbol}${parseFloat(String(saleData.memberRewardBalance)).toFixed(2)}`);
       }
     }
 
@@ -2309,16 +2023,11 @@ class UniversalPrinter {
 
   static async routeAndPrintOrderKOT(
     orderId: string,
-    orderContext: {
-      orderType?: string;
-      tableNo?: string;
-      takeawayNo?: string;
-      section?: string;
-    },
+    orderContext: { orderType?: string; tableNo?: string; takeawayNo?: string; section?: string },
     items: any[],
     isAdditional: boolean = false,
     waiterName: string = "Staff",
-    skipDuplicateGuard: boolean = false,
+    skipDuplicateGuard: boolean = false
   ): Promise<boolean> {
     try {
       // 1. Duplicate-print guard (QR socket path only; cashier path passes skipDuplicateGuard=true)
@@ -2328,15 +2037,10 @@ class UniversalPrinter {
       }
 
       // 2. Check enableKOT setting (same setting the cashier flow checks)
-      const { useGeneralSettingsStore } =
-        await import("../stores/generalSettingsStore");
-      const { enableKOT, enableKDSPrint } =
-        useGeneralSettingsStore.getState().settings;
+      const { useGeneralSettingsStore } = await import("../stores/generalSettingsStore");
+      const { enableKOT, enableKDSPrint } = useGeneralSettingsStore.getState().settings;
       if (!enableKOT) {
-        if (__DEV__)
-          console.log(
-            "🖨️ [UniversalPrinter] KOT printing is disabled in General Settings.",
-          );
+        if (__DEV__) console.log("🖨️ [UniversalPrinter] KOT printing is disabled in General Settings.");
         return false;
       }
 
@@ -2351,10 +2055,7 @@ class UniversalPrinter {
                 const optKitchenCode =
                   opt.KitchenTypeCode || opt.kitchenCode || opt.kitchenTypeCode;
                 const parentKitchenCode =
-                  item.KitchenTypeCode ||
-                  item.kitchenCode ||
-                  item.kitchenTypeCode ||
-                  "0";
+                  item.KitchenTypeCode || item.kitchenCode || item.kitchenTypeCode || "0";
                 if (optKitchenCode && optKitchenCode !== parentKitchenCode) {
                   expandedItems.push({
                     ...opt,
@@ -2396,14 +2097,13 @@ class UniversalPrinter {
           waiterName,
           items: groupItems,
           kitchenName:
-            groupItems[0].KitchenTypeName ||
-            (kCode === "0" ? "KITCHEN" : kCode),
+            groupItems[0].KitchenTypeName || (kCode === "0" ? "KITCHEN" : kCode),
         };
         await this.printKOT(
           kotData,
           "SYSTEM",
           isAdditional ? "ADDITIONAL" : "NEW",
-          printerIp,
+          printerIp
         );
       }
 
@@ -2474,7 +2174,7 @@ class UniversalPrinter {
           payMode: p.PayModeName || p.Remarks || "CASH",
           payModeName: p.PayModeName || p.Remarks || "CASH",
           amount: Number(p.Amount ?? 0),
-          referenceNo: p.ReferenceNo || "",
+          referenceNo: p.ReferenceNo || ""
         })),
         roundOff: Number(header.RoundedBy ?? 0),
         date: header.LastSettlementDate || new Date(),
