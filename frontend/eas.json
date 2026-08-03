@@ -11,13 +11,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://clubdemo2026july-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://mersalclub-production.up.railway.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://clubdemo2026july-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://mersalclub-production.up.railway.app"
       },
       "android": {
         "buildType": "apk"

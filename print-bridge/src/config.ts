@@ -90,7 +90,7 @@ const defaultConfig: BridgeConfig = {
   backends: [
     {
       name: 'RN POS',
-      url: 'https://clubdemo2026july-production.up.railway.app',
+      url: 'https://mersalclub-production.up.railway.app',
       enabled: true
     },
     {
@@ -114,7 +114,7 @@ function loadConfig(): BridgeConfig {
 
     // Backward compatibility conversion:
     if (!parsed.backends || !Array.isArray(parsed.backends)) {
-      const url = parsed.apiUrl || parsed.backendUrl || 'https://clubdemo2026july-production.up.railway.app';
+      const url = parsed.apiUrl || parsed.backendUrl || 'https://mersalclub-production.up.railway.app';
       parsed.backends = [
         {
           name: 'Default',

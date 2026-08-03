@@ -25,7 +25,7 @@ const getLocalBackendIP = (): string => {
 // __DEV__ is injected by Metro bundler. Provide a safe default for any non-Metro context.
 const isDev: boolean = typeof __DEV__ !== 'undefined' ? __DEV__ : false;
 
-export let API_URL = 'https://clubdemo2026july-production.up.railway.app';
+export let API_URL = 'https://mersalclub-production.up.railway.app';
 
 export const setApiUrl = (url: string) => {
   API_URL = url;
