@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./frontend"
+    },
+    {
+      "path": "./packages/customer-display"
+    }
+  ],
+  "compilerOptions": {},
+  "extends": "expo/tsconfig.base"
+}
