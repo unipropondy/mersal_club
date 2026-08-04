@@ -201,10 +201,7 @@ router.get('/logs', authenticateToken, async (req, res) => {
       request.input('userId', sql.NVarChar(100), userId);
       where += ' AND l.OpenedByUserId = @userId';
     }
-    if (terminalCode && terminalCode !== 'ALL') {
-      request.input('terminalCode', sql.NVarChar(50), terminalCode);
-      where += ' AND l.TerminalCode = @terminalCode';
-    }
+
 
     const result = await request.query(`
       SELECT 
