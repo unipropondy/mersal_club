@@ -957,7 +957,26 @@ router.get("/dish", async (req, res) => {
       `);
 
     console.log(`[REPORT API] type=dish filter=${filter} rows=${result.recordset.length}`);
-    res.json(result.recordset || []);
+    
+    const rows = result.recordset || [];
+    const formattedRows = rows.map(row => {
+      const dishName = row.dishName || "";
+      if (dishName.includes(" - ")) {
+        const parts = dishName.split(" - ");
+        if (parts.length > 1) {
+          const prefix = parts.slice(0, -1).join(" - ").trim();
+          if (prefix) {
+            return {
+              ...row,
+              subCategoryName: prefix
+            };
+          }
+        }
+      }
+      return row;
+    });
+
+    res.json(formattedRows);
   } catch (err) {
     console.error("[REPORT API] dish error:", err.message);
     res.status(500).json({ error: err.message });
