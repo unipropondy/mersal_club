@@ -141,10 +141,10 @@ router.post('/log', authenticateToken, async (req, res) => {
             USING (SELECT @outletId as OutletId, @startDate as SettlementDate) AS source
             ON (target.OutletId = source.OutletId AND target.SettlementDate = source.SettlementDate)
             WHEN MATCHED THEN
-              UPDATE SET OpeningCashTotal = @openingCashTotal, CashierName = @cashierName, UpdatedAt = GETDATE()
+              UPDATE SET OpeningCashTotal = @openingCashTotal, OpeningCashJSON = NULL, CashierName = @cashierName, UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
-              INSERT (OutletId, SettlementDate, CashierName, OpeningCashTotal, CreatedAt)
-              VALUES (@outletId, @startDate, @cashierName, @openingCashTotal, GETDATE());
+              INSERT (OutletId, SettlementDate, CashierName, OpeningCashJSON, OpeningCashTotal, CreatedAt)
+              VALUES (@outletId, @startDate, @cashierName, NULL, @openingCashTotal, GETDATE());
           `);
 
         // Upsert OpeningCashDenomination with Type = 'OPEN'
@@ -155,12 +155,12 @@ router.post('/log', authenticateToken, async (req, res) => {
           .input('startDate', sql.Date, formattedStartDate)
           .query(`
             DELETE FROM OpeningCashDenomination 
-            WHERE CAST(CreatedOn as DATE) = CAST(GETDATE() as DATE)
+            WHERE (start_date = @startDate OR CAST(CreatedOn as DATE) = @startDate)
             AND Type = 'OPEN'
             AND (ScreenType = 'CB' OR ScreenType IS NULL);
 
             INSERT INTO OpeningCashDenomination (CurrencyValue, NoteCount, Type, CreatedBy, CreatedOn, ScreenType, start_date)
-            VALUES (@value, 1, 'OPEN', @createdBy, GETDATE(), 'CB', @startDate);
+            VALUES (@value, 1, 'OPEN', @createdBy, @startDate, 'CB', @startDate);
           `);
       }
     }
