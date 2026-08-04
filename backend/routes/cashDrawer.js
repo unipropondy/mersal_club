@@ -135,15 +135,16 @@ router.post('/log', authenticateToken, async (req, res) => {
           .input('outletId', sql.Int, parsedOutletId)
           .input('openingCashTotal', sql.Decimal(10, 2), amount)
           .input('cashierName', sql.NVarChar(100), cashierName)
+          .input('startDate', sql.Date, formattedStartDate)
           .query(`
             MERGE settlement AS target
-            USING (SELECT @outletId as OutletId, CAST(GETDATE() AS DATE) as SettlementDate) AS source
+            USING (SELECT @outletId as OutletId, @startDate as SettlementDate) AS source
             ON (target.OutletId = source.OutletId AND target.SettlementDate = source.SettlementDate)
             WHEN MATCHED THEN
               UPDATE SET OpeningCashTotal = @openingCashTotal, CashierName = @cashierName, UpdatedAt = GETDATE()
             WHEN NOT MATCHED THEN
               INSERT (OutletId, SettlementDate, CashierName, OpeningCashTotal, CreatedAt)
-              VALUES (@outletId, CAST(GETDATE() AS DATE), @cashierName, @openingCashTotal, GETDATE());
+              VALUES (@outletId, @startDate, @cashierName, @openingCashTotal, GETDATE());
           `);
 
         // Upsert OpeningCashDenomination with Type = 'OPEN'

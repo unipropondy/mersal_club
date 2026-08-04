@@ -250,7 +250,7 @@ const normalizeCartItem = (item: any, fallback: Partial<CartItem> = {}): CartIte
 };
 
 const canMergeCartItems = (left: CartItem, right: CartItem) => {
-  if (left.id !== right.id) return false;
+  if (left.id !== right.id || left.name !== right.name) return false;
   if (isOpenPriceItem(left) || isOpenPriceItem(right)) {
     if (left.price !== right.price) return false;
   }
@@ -470,6 +470,7 @@ export const useCartStore = create<CartState>()(
 
           const existingIndex = currentCart.findIndex(p => {
             if (p.id !== normalizedIncoming.id || 
+                p.name !== normalizedIncoming.name ||
                 p.songName !== normalizedIncoming.songName ||
                 p.status !== "NEW" || 
                 p.isTakeaway !== normalizedIncoming.isTakeaway || 

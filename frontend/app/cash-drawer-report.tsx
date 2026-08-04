@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,8 +31,10 @@ export default function CashDrawerReportScreen() {
   
   // Date filters
   const [fromDate] = useState<Date>(() => {
-    const { from } = getSingaporeTimeTodayRange();
-    return from;
+    const d = new Date();
+    d.setDate(d.getDate() - 3); // 3 days ago to cover active business day shifts!
+    d.setHours(0, 0, 0, 0);
+    return d;
   });
   const [toDate] = useState<Date>(() => {
     const { to } = getSingaporeTimeTodayRange();
@@ -184,7 +186,7 @@ export default function CashDrawerReportScreen() {
           </View>
         </View>
 
-        <View style={styles.dropdownWrapper}>
+        {/* <View style={styles.dropdownWrapper}>
           <Text style={styles.filterLabel}>Register / Terminal</Text>
           <View style={styles.filterRow}>
             {['ALL', ...terminals].map((code) => (
@@ -199,7 +201,7 @@ export default function CashDrawerReportScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </View> */}
       </View>
 
       {/* Audit Logs Table */}
