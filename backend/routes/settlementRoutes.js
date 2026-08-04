@@ -1117,6 +1117,54 @@ router.post('/artist-cashbox', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE Artist Cash Box entry and its associated settlement records
+router.delete('/artist-cashbox/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params; // CashBoxId
+    const pool = getPool();
+    
+    // First, find the SettlementID associated with this CashBoxId
+    const findRes = await pool.request()
+      .input('CashBoxId', sql.UniqueIdentifier, id)
+      .query('SELECT SettlementID FROM ArtistCashBox WHERE CashBoxId = @CashBoxId');
+      
+    if (findRes.recordset.length === 0) {
+      return res.status(404).json({ error: 'Cash box entry not found' });
+    }
+    
+    const settlementId = findRes.recordset[0].SettlementID;
+    
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+    try {
+      const request = new sql.Request(transaction);
+      request.input('CashBoxId', sql.UniqueIdentifier, id);
+      request.input('SettlementID', sql.UniqueIdentifier, settlementId);
+      
+      // Delete from ArtistCashBox
+      await request.query('DELETE FROM ArtistCashBox WHERE CashBoxId = @CashBoxId');
+      
+      // Delete associated settlement records
+      await request.query('DELETE FROM SettlementHeader WHERE SettlementID = @SettlementID');
+      await request.query('DELETE FROM SettlementItemDetail WHERE SettlementID = @SettlementID');
+      await request.query('DELETE FROM SettlementTotalSales WHERE SettlementID = @SettlementID');
+      await request.query('DELETE FROM SettlementDetail WHERE SettlementId = @SettlementID');
+      await request.query('DELETE FROM SettlementTranDetail WHERE SettlementID = @SettlementID');
+      await request.query('DELETE FROM PaymentDetailCur WHERE RestaurantBillId = @SettlementID');
+      await request.query('DELETE FROM PaymentDetail WHERE RestaurantBillId = @SettlementID');
+      
+      await transaction.commit();
+      res.json({ success: true, message: 'Cash box entry and associated settlement deleted successfully' });
+    } catch (innerErr) {
+      try { await transaction.rollback(); } catch (e) {}
+      throw innerErr;
+    }
+  } catch (err) {
+    console.error('Error deleting artist cashbox:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/artist-list', authenticateToken, async (req, res) => {
   try {
     const pool = getPool();

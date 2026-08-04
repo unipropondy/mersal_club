@@ -1059,10 +1059,10 @@ export default function MenuScreen() {
         currentKitchen?.KitchenTypeCode || String(selectedKitchenId || "0");
 
       const addToCartSimple = (overridePrice?: number) => {
+        const currentGroupObj = groups.find((g: any) => g.DishGroupId === selectedGroup);
         const dishGroupName =
-          dish.DishGroupName ||
-          groups.find((g: any) => g.DishGroupId === selectedGroup)
-            ?.DishGroupName;
+          currentGroupObj?.DishGroupName ||
+          dish.DishGroupName;
         const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
         addToCartGlobal({
           id: dish.DishId,
@@ -1348,9 +1348,10 @@ export default function MenuScreen() {
       const currentKitchenCode =
         currentKitchen?.KitchenTypeCode || selectedKitchenId;
 
+      const currentGroupObj = groups.find((g: any) => g.DishGroupId === selectedGroup);
       const dishGroupName =
-        selectedDish.DishGroupName ||
-        groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
+        currentGroupObj?.DishGroupName ||
+        selectedDish.DishGroupName;
       const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
 
       addToCartGlobal({
@@ -1392,9 +1393,10 @@ export default function MenuScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    const currentGroupObj = groups.find((g: any) => g.DishGroupId === selectedGroup);
     const dishGroupName =
-      dish.DishGroupName ||
-      groups.find((g: any) => g.DishGroupId === selectedGroup)?.DishGroupName;
+      currentGroupObj?.DishGroupName ||
+      dish.DishGroupName;
     const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
 
     addToCartGlobal({

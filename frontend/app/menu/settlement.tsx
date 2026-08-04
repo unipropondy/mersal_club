@@ -538,10 +538,24 @@ export default function SettlementScreen() {
 
   // Cash Box State
   const [cashBoxEntries, setCashBoxEntries] = useState<any[]>([]);
-const [cashBoxForm, setCashBoxForm] = useState({
-  ArtistName: '',
-  Amount: ''
-});
+  const [cashBoxForm, setCashBoxForm] = useState({
+    ArtistName: '',
+    Amount: '',
+    CashBoxId: ''
+  });
+  
+  // Generic Confirm State
+  const [genericConfirm, setGenericConfirm] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const [lovMode, setLovMode] = useState<"OPEN" | "CLOSE">("OPEN");
 
   const [openingCash, setOpeningCash] = useState<string>("0");
@@ -978,36 +992,75 @@ const fetchDayHistory = async () => {
   };
 
   const handleSaveCashBox = async () => {
-  try {
+    try {
+      setLoading(true);
 
-    await axios.post(
-      `${API_URL}/api/settlement/artist-cashbox`,
-      {
-        ArtistName: cashBoxForm.ArtistName,
-        Amount: parseFloat(cashBoxForm.Amount)
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      if (cashBoxForm.CashBoxId) {
+        await axios.delete(`${API_URL}/api/settlement/artist-cashbox/${cashBoxForm.CashBoxId}`, {
+          headers: { Authorization: `Bearer ${useAuthStore.getState().token}` }
+        });
       }
-    );
 
-    Alert.alert("Success", "Cash Box Saved");
+      await axios.post(
+        `${API_URL}/api/settlement/artist-cashbox`,
+        {
+          ArtistName: cashBoxForm.ArtistName,
+          Amount: parseFloat(cashBoxForm.Amount)
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
-    setCashBoxForm({
-      ArtistName: "",
-      Amount: "",
+      Alert.alert("Success", "Cash Box Saved");
+
+      setCashBoxForm({
+        ArtistName: "",
+        Amount: "",
+        CashBoxId: ""
+      });
+
+      setShowCashBoxModal(false);
+      fetchData();
+
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Error", "Failed to save");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const executeDeleteCashBox = async (id: string) => {
+    try {
+      setLoading(true);
+      const res = await axios.delete(`${API_URL}/api/settlement/artist-cashbox/${id}`, {
+        headers: { Authorization: `Bearer ${useAuthStore.getState().token}` }
+      });
+      if (res.data.success) {
+        fetchData();
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.response?.data?.error || "Failed to delete entry");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCashBox = (id: string) => {
+    if (!id) return;
+    setGenericConfirm({
+      visible: true,
+      title: "Delete Cash Box",
+      message: "Are you sure you want to delete this artist cashbox entry?",
+      onConfirm: () => {
+        executeDeleteCashBox(id);
+        setGenericConfirm(prev => ({ ...prev, visible: false }));
+      }
     });
-
-    setShowCashBoxModal(false);
-    fetchData();
-
-  } catch (err) {
-    console.log(err);
-    Alert.alert("Error", "Failed to save");
-  }
-};
+  };
 
   const executeDeleteCashOut = async (id: string) => {
     try {
@@ -1025,22 +1078,17 @@ const fetchDayHistory = async () => {
     }
   };
 
-  const handleDeleteCashOut = async (id: string) => {
-    if (!id) {
-      Alert.alert("Error", "Invalid entry ID");
-      return;
-    }
-
-    if (Platform.OS === 'web') {
-      if (window.confirm("Are you sure you want to delete this cash out entry?")) {
+  const handleDeleteCashOut = (id: string) => {
+    if (!id) return;
+    setGenericConfirm({
+      visible: true,
+      title: "Delete Cash Out",
+      message: "Are you sure you want to delete this cash out entry?",
+      onConfirm: () => {
         executeDeleteCashOut(id);
+        setGenericConfirm(prev => ({ ...prev, visible: false }));
       }
-    } else {
-      Alert.alert("Confirm", "Are you sure you want to delete this cash out entry?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => executeDeleteCashOut(id) }
-      ]);
-    }
+    });
   };
 
   const executeDeleteCashIn = async (id: string) => {
@@ -1059,22 +1107,17 @@ const fetchDayHistory = async () => {
     }
   };
 
-  const handleDeleteCashIn = async (id: string) => {
-    if (!id) {
-      Alert.alert("Error", "Invalid entry ID");
-      return;
-    }
-
-    if (Platform.OS === 'web') {
-      if (window.confirm("Are you sure you want to delete this cash in entry?")) {
+  const handleDeleteCashIn = (id: string) => {
+    if (!id) return;
+    setGenericConfirm({
+      visible: true,
+      title: "Delete Cash In",
+      message: "Are you sure you want to delete this cash in entry?",
+      onConfirm: () => {
         executeDeleteCashIn(id);
+        setGenericConfirm(prev => ({ ...prev, visible: false }));
       }
-    } else {
-      Alert.alert("Confirm", "Are you sure you want to delete this cash in entry?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => executeDeleteCashIn(id) }
-      ]);
-    }
+    });
   };
 
    const handlePrintReport = async () => {
@@ -2313,6 +2356,32 @@ const fetchDayHistory = async () => {
             <View style={styles.modalDivider} />
 
             <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ paddingVertical: 5 }} showsVerticalScrollIndicator={false}>
+              {/* List of Today's Artist Cash Box */}
+              <View style={{ marginBottom: 15 }}>
+                {cashBoxEntries.length > 0 ? (
+                  <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled>
+                    {cashBoxEntries.map((co, idx) => (
+                      <View key={idx} style={[styles.tableRow, { alignItems: 'center' }]}>
+                        <Text style={[styles.tableCellText, { flex: 2, fontFamily: Fonts.bold }]}>{co.ArtistName || 'Artist'}</Text>
+                        <Text style={[styles.tableCellText, { flex: 1, textAlign: 'right', paddingRight: 15 }]}>{formatCurrency(co.Amount)}</Text>
+                        <View style={{ flexDirection: 'row', gap: 15, width: 60, justifyContent: 'flex-end' }}>
+                          <TouchableOpacity onPress={() => setCashBoxForm({ ...co, CashBoxId: co.CashBoxId || co.cashBoxId, ArtistName: co.ArtistName, Amount: co.Amount?.toString() || '' })}>
+                            <Ionicons name="create-outline" size={18} color={Theme.primary} />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleDeleteCashBox(co.CashBoxId || co.cashBoxId)}>
+                            <Ionicons name="trash-outline" size={18} color={Theme.danger} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <View style={{ paddingVertical: 15, alignItems: 'center', backgroundColor: Theme.bgInput, borderRadius: 8, borderWidth: 1, borderColor: Theme.border }}>
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Theme.textMuted }}>No cash box entries found for the selected time period.</Text>
+                  </View>
+                )}
+              </View>
+
               <View style={{ marginBottom: 16 }}>
                 <Text style={{ fontFamily: Fonts.bold, fontSize: 13, marginBottom: 6, color: Theme.textSecondary }}>Artist Name *</Text>
                 <TouchableOpacity
@@ -2329,10 +2398,13 @@ const fetchDayHistory = async () => {
                 <Text style={{ fontFamily: Fonts.bold, fontSize: 13, marginBottom: 6, color: Theme.textSecondary }}>Amount *</Text>
                 <TextInput
                   style={[styles.premiumInput, { textAlign: 'right', fontSize: 18, fontFamily: Fonts.medium }]}
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   value={cashBoxForm.Amount}
-                  onChangeText={(v) => setCashBoxForm({ ...cashBoxForm, Amount: v })}
-                  placeholder="0.00"
+                  onChangeText={(v) => {
+                    const cleaned = v.replace(/[^0-9]/g, "");
+                    setCashBoxForm({ ...cashBoxForm, Amount: cleaned });
+                  }}
+                  placeholder="0"
                   placeholderTextColor={Theme.textMuted}
                 />
               </View>
@@ -2341,7 +2413,7 @@ const fetchDayHistory = async () => {
             <View style={[styles.modalFooter, { flexDirection: 'row', gap: 10 }]}>
               <TouchableOpacity
                 style={[styles.confirmBtn, { flex: 1, backgroundColor: Theme.bgMuted }]}
-                onPress={() => setCashBoxForm({ ArtistName: '', Amount: '' })}
+                onPress={() => setCashBoxForm({ ArtistName: '', Amount: '', CashBoxId: '' })}
               >
                 <Text style={[styles.confirmBtnText, { color: Theme.textPrimary }]}>Clear Form</Text>
               </TouchableOpacity>
@@ -2559,6 +2631,119 @@ const fetchDayHistory = async () => {
                 >
                   <Text style={{ fontFamily: Fonts.bold, fontSize: 15, color: "#fff" }}>
                     Confirm
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* GENERIC CONFIRM MODAL */}
+      <Modal
+        visible={genericConfirm.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setGenericConfirm(prev => ({ ...prev, visible: false }))}
+      >
+        <TouchableOpacity 
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20
+          }}
+          activeOpacity={1}
+          onPress={() => setGenericConfirm(prev => ({ ...prev, visible: false }))}
+        >
+          <TouchableWithoutFeedback>
+            <View 
+              style={{
+                width: "100%",
+                maxWidth: 400,
+                backgroundColor: Theme.bgCard,
+                borderRadius: 20,
+                padding: 24,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 12,
+                elevation: 5
+              }}
+            >
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: "rgba(239, 68, 68, 0.1)",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 16
+              }}>
+                <Ionicons name="trash-outline" size={28} color="#ef4444" />
+              </View>
+
+              <Text style={{
+                fontSize: 18,
+                fontFamily: Fonts.bold,
+                color: Theme.textPrimary,
+                marginBottom: 8,
+                textAlign: "center"
+              }}>
+                {genericConfirm.title}
+              </Text>
+
+              <Text style={{
+                fontSize: 14,
+                fontFamily: Fonts.medium,
+                color: Theme.textSecondary,
+                marginBottom: 24,
+                textAlign: "center",
+                lineHeight: 20
+              }}>
+                {genericConfirm.message}
+              </Text>
+
+              <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
+                <TouchableOpacity 
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 12,
+                    backgroundColor: Theme.bgMuted || "#F3F4F6",
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}
+                  onPress={() => setGenericConfirm(prev => ({ ...prev, visible: false }))}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontFamily: Fonts.bold,
+                    color: Theme.textPrimary
+                  }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 12,
+                    backgroundColor: "#ef4444",
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}
+                  onPress={genericConfirm.onConfirm}
+                >
+                  <Text style={{
+                    fontSize: 14,
+                    fontFamily: Fonts.bold,
+                    color: "#ffffff"
+                  }}>
+                    Delete
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -2888,14 +3073,14 @@ const styles = StyleSheet.create({
   },
   premiumInput: {
     height: 52,
-    backgroundColor: '#F4F5F7',
+    backgroundColor: Theme.bgInput,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 15,
     fontFamily: Fonts.bold,
     color: Theme.textPrimary,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: Theme.border,
   },
   modalOverlay: {
     flex: 1,

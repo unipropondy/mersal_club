@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,18 +29,17 @@ import { Theme } from "../constants/theme";
 
 import { useAuthStore } from "@/stores/authStore";
 import CancelOrderModal from "../components/CancelOrderModal";
-import VoidItemModal from "../components/VoidItemModal";
 import DiscountModal from "../components/DiscountModal";
 import ItemDiscountModal from "../components/ItemDiscountModal";
 import ServerSelectionModal from "../components/ServerSelectionModal";
 import UniversalPrinter from "../components/UniversalPrinter";
+import VoidItemModal from "../components/VoidItemModal";
 import {
   findActiveOrder,
   useActiveOrdersStore,
   voidOrderItem,
 } from "../stores/activeOrdersStore";
 import { useCartStore } from "../stores/cartStore";
-import { CustomerDisplaySync } from "../utils/CustomerDisplaySync";
 import { useCompanySettingsStore } from "../stores/companySettingsStore";
 import { useGeneralSettingsStore } from "../stores/generalSettingsStore";
 import {
@@ -48,8 +47,9 @@ import {
   setOrderContext,
   useOrderContextStore,
 } from "../stores/orderContextStore";
-import { useTableStatusStore } from "../stores/tableStatusStore";
 import { useServiceChargeOverrideStore } from "../stores/serviceChargeOverrideStore";
+import { useTableStatusStore } from "../stores/tableStatusStore";
+import { CustomerDisplaySync } from "../utils/CustomerDisplaySync";
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -121,7 +121,9 @@ export default function SummaryScreen() {
   const [showBillOptions, setShowBillOptions] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
-  const [selectedMergeOrderIds, setSelectedMergeOrderIds] = useState<string[]>([]);
+  const [selectedMergeOrderIds, setSelectedMergeOrderIds] = useState<string[]>(
+    [],
+  );
   const [confirmMergeVisible, setConfirmMergeVisible] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [scReduced, setScReduced] = useState(false);
@@ -135,7 +137,8 @@ export default function SummaryScreen() {
   const [allDishes, setAllDishes] = useState<any[]>([]);
   const [searchDishText, setSearchDishText] = useState("");
   const [extraSplitItems, setExtraSplitItems] = useState<any[]>([]);
-  const [hasAttemptedInitialFetch, setHasAttemptedInitialFetch] = useState(false);
+  const [hasAttemptedInitialFetch, setHasAttemptedInitialFetch] =
+    useState(false);
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [splitType, setSplitType] = useState<"items" | "parts">("items");
   const [partCount, setPartCount] = useState<number>(2);
@@ -155,9 +158,11 @@ export default function SummaryScreen() {
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [defaultLoyaltyMembers, setDefaultLoyaltyMembers] = useState<any[]>([]);
   const [loyaltySearchText, setLoyaltySearchText] = useState("");
-  const [activeLoyaltyTab, setActiveLoyaltyTab] = useState<"search" | "register">("search");
+  const [activeLoyaltyTab, setActiveLoyaltyTab] = useState<
+    "search" | "register"
+  >("search");
   const [isRegisteringLoyalty, setIsRegisteringLoyalty] = useState(false);
-  
+
   // 🏆 REWARD POINTS STATES
   const [rewardMember, setRewardMember] = useState<any | null>(null);
   const [showRewardModal, setShowRewardModal] = useState(false);
@@ -192,22 +197,30 @@ export default function SummaryScreen() {
     const settings = useGeneralSettingsStore.getState().settings;
 
     if (isVip && settings.vipRuleEnabled) {
-      console.log("💎 [VIP RULE] Auto-applying pre-configured VIP offer rule:", settings);
+      console.log(
+        "💎 [VIP RULE] Auto-applying pre-configured VIP offer rule:",
+        settings,
+      );
       setVipOffer({
         targetType: (settings.vipRuleTargetType as any) || "BOTH",
         dishId: settings.vipRuleDishId || null,
         dishGroupId: settings.vipRuleDishGroupId || null,
-        discountType: settings.vipRuleDiscountType === "AMOUNT" ? "FIXED" : "PERCENTAGE",
-        discountValue: Number(settings.vipRuleDiscountValue) || 0
+        discountType:
+          settings.vipRuleDiscountType === "AMOUNT" ? "FIXED" : "PERCENTAGE",
+        discountValue: Number(settings.vipRuleDiscountValue) || 0,
       });
     }
   }, [rewardMember]);
 
   // Offer form inputs
-  const [offerTargetType, setOfferTargetType] = useState<"DISH" | "GROUP" | "BOTH">("DISH");
+  const [offerTargetType, setOfferTargetType] = useState<
+    "DISH" | "GROUP" | "BOTH"
+  >("DISH");
   const [selectedOfferDishId, setSelectedOfferDishId] = useState("");
   const [selectedOfferGroupId, setSelectedOfferGroupId] = useState("");
-  const [offerDiscountType, setOfferDiscountType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE");
+  const [offerDiscountType, setOfferDiscountType] = useState<
+    "PERCENTAGE" | "FIXED"
+  >("PERCENTAGE");
   const [offerDiscountValue, setOfferDiscountValue] = useState("");
 
   const tableState = context?.tableId
@@ -217,7 +230,11 @@ export default function SummaryScreen() {
   const handleLoyaltyLookup = async (phoneToSearch?: string) => {
     let targetPhone = phoneToSearch || loyaltyPhone;
     if (!targetPhone || targetPhone.trim() === "") {
-      showToast({ type: "warning", message: "Enter Phone", subtitle: "Please input a valid phone number" });
+      showToast({
+        type: "warning",
+        message: "Enter Phone",
+        subtitle: "Please input a valid phone number",
+      });
       return;
     }
     if (!phoneToSearch) {
@@ -226,11 +243,14 @@ export default function SummaryScreen() {
     setIsSearchingLoyalty(true);
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${API_URL}/api/loyalty/status/${encodeURIComponent(targetPhone.trim())}`, {
-        headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
-      });
+      const res = await fetch(
+        `${API_URL}/api/loyalty/status/${encodeURIComponent(targetPhone.trim())}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
       const data = await res.json();
       if (data.success) {
         setLoyaltyCustomer(data.customer);
@@ -240,18 +260,27 @@ export default function SummaryScreen() {
         showToast({
           type: "success",
           message: data.exists ? "Customer Found" : "New Customer Enrolled",
-          subtitle: data.exists ? `Visits: ${data.customer.VisitCount} (Lifetime: ${data.customer.TotalVisits || 0})` : "First visit recorded upon checkout"
+          subtitle: data.exists
+            ? `Visits: ${data.customer.VisitCount} (Lifetime: ${data.customer.TotalVisits || 0})`
+            : "First visit recorded upon checkout",
         });
 
-        if (data.customer.RewardPending === 1 || data.customer.VisitCount === 9) {
+        if (
+          data.customer.RewardPending === 1 ||
+          data.customer.VisitCount === 9
+        ) {
           Alert.alert(
             "Loyalty Reward",
             "🎉 Customer is eligible for a free food reward.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         }
       } else {
-        showToast({ type: "error", message: "Lookup Failed", subtitle: data.error || "Failed to search customer" });
+        showToast({
+          type: "error",
+          message: "Lookup Failed",
+          subtitle: data.error || "Failed to search customer",
+        });
       }
     } catch (err: any) {
       console.error("Loyalty lookup error:", err);
@@ -275,11 +304,14 @@ export default function SummaryScreen() {
     try {
       const token = useAuthStore.getState().token;
       const query = cleanText;
-      const res = await fetch(`${API_URL}/api/loyalty/search?q=${encodeURIComponent(query)}`, {
-        headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
-      });
+      const res = await fetch(
+        `${API_URL}/api/loyalty/search?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
       const data = await res.json();
       if (Array.isArray(data)) {
         setSearchResults(data);
@@ -296,9 +328,12 @@ export default function SummaryScreen() {
     setIsSearchingRewards(true);
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${API_URL}/api/rewards/members/search?q=${encodeURIComponent(clean)}`, {
-        headers: token ? { "Authorization": `Bearer ${token}` } : {}
-      });
+      const res = await fetch(
+        `${API_URL}/api/rewards/members/search?q=${encodeURIComponent(clean)}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      );
       const data = await res.json();
       if (Array.isArray(data)) {
         setRewardSearchResults(data);
@@ -325,11 +360,14 @@ export default function SummaryScreen() {
     }
     try {
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${API_URL}/api/loyalty/search?q=${encodeURIComponent(cleanText)}`, {
-        headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
-      });
+      const res = await fetch(
+        `${API_URL}/api/loyalty/search?q=${encodeURIComponent(cleanText)}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
       const data = await res.json();
       if (Array.isArray(data)) {
         setSearchResults(data);
@@ -352,14 +390,18 @@ export default function SummaryScreen() {
       Alert.alert(
         "Loyalty Reward",
         "🎉 Customer is eligible for a free food reward.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     }
   };
 
   const handleLoyaltyRegister = async () => {
     if (!loyaltyPhone || loyaltyPhone.trim() === "") {
-      showToast({ type: "warning", message: "Phone Required", subtitle: "Please enter a phone number first" });
+      showToast({
+        type: "warning",
+        message: "Phone Required",
+        subtitle: "Please enter a phone number first",
+      });
       return;
     }
     setIsRegisteringLoyalty(true);
@@ -388,14 +430,24 @@ export default function SummaryScreen() {
         showToast({
           type: "success",
           message: data.exists ? "Already Registered" : "Customer Added!",
-          subtitle: data.exists ? "Customer already exists in the loyalty program" : `${data.customer.Name || fullPhone} enrolled successfully`,
+          subtitle: data.exists
+            ? "Customer already exists in the loyalty program"
+            : `${data.customer.Name || fullPhone} enrolled successfully`,
         });
       } else {
-        showToast({ type: "error", message: "Registration Failed", subtitle: data.error || "Could not register customer" });
+        showToast({
+          type: "error",
+          message: "Registration Failed",
+          subtitle: data.error || "Could not register customer",
+        });
       }
     } catch (err: any) {
       console.error("Loyalty register error:", err);
-      showToast({ type: "error", message: "Connection Error", subtitle: "Could not reach server" });
+      showToast({
+        type: "error",
+        message: "Connection Error",
+        subtitle: "Could not reach server",
+      });
     } finally {
       setIsRegisteringLoyalty(false);
     }
@@ -408,8 +460,8 @@ export default function SummaryScreen() {
           const token = useAuthStore.getState().token;
           const res = await fetch(`${API_URL}/api/loyalty/search?q=`, {
             headers: {
-              ...(token ? { "Authorization": `Bearer ${token}` } : {})
-            }
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           });
           const data = await res.json();
           if (Array.isArray(data)) {
@@ -424,8 +476,18 @@ export default function SummaryScreen() {
   }, [showLoyaltyModal]);
 
   useEffect(() => {
-    const phone = (activeOrder as any)?.mobileNo || (activeOrder as any)?.MobileNo || (tableState as any)?.mobileNo || (tableState as any)?.MobileNo || "";
-    const name = (activeOrder as any)?.customerName || (activeOrder as any)?.CustomerName || (tableState as any)?.customerName || (tableState as any)?.CustomerName || "";
+    const phone =
+      (activeOrder as any)?.mobileNo ||
+      (activeOrder as any)?.MobileNo ||
+      (tableState as any)?.mobileNo ||
+      (tableState as any)?.MobileNo ||
+      "";
+    const name =
+      (activeOrder as any)?.customerName ||
+      (activeOrder as any)?.CustomerName ||
+      (tableState as any)?.customerName ||
+      (tableState as any)?.CustomerName ||
+      "";
     if (phone && phone.trim() !== "") {
       const parsed = parsePhone(phone);
       setSelectedCountry(parsed.country);
@@ -443,14 +505,23 @@ export default function SummaryScreen() {
       router.push({
         pathname: "/payment",
         params: {
-          mobileNo: loyaltyPhone ? `${selectedCountry.code} ${loyaltyPhone.trim()}` : "",
+          mobileNo: loyaltyPhone
+            ? `${selectedCountry.code} ${loyaltyPhone.trim()}`
+            : "",
           customerName: loyaltyName || "",
           rewardMemberId: rewardMember?.MemberId || "",
           vipOffer: vipOffer ? JSON.stringify(vipOffer) : "",
         },
       });
     }
-  }, [params.autoPay, context, loyaltyPhone, selectedCountry, loyaltyName, rewardMember]);
+  }, [
+    params.autoPay,
+    context,
+    loyaltyPhone,
+    selectedCountry,
+    loyaltyName,
+    rewardMember,
+  ]);
 
   const settings = useCompanySettingsStore((state: any) => state.settings);
   const currencySymbol = settings.currencySymbol || "$";
@@ -458,15 +529,28 @@ export default function SummaryScreen() {
   const scRate = (settings.serviceChargePercentage || 0) / 100;
 
   const enableKOT = useGeneralSettingsStore((s: any) => s.settings.enableKOT);
-  const enableCheckoutBill = useGeneralSettingsStore((s: any) => s.settings.enableCheckoutBill);
-  const showLoyalty = useGeneralSettingsStore((s: any) => s.settings.showLoyalty !== false);
-  const showRewardPoints = useGeneralSettingsStore((s: any) => s.settings.showRewardPoints !== false);
-  const showPromoCode = useGeneralSettingsStore((s: any) => s.settings.showPromoCode !== false);
+  const enableCheckoutBill = useGeneralSettingsStore(
+    (s: any) => s.settings.enableCheckoutBill,
+  );
+  const showLoyalty = useGeneralSettingsStore(
+    (s: any) => s.settings.showLoyalty !== false,
+  );
+  const showRewardPoints = useGeneralSettingsStore(
+    (s: any) => s.settings.showRewardPoints !== false,
+  );
+  const showPromoCode = useGeneralSettingsStore(
+    (s: any) => s.settings.showPromoCode !== false,
+  );
 
   const currentContextId = useCartStore((s: any) => s.currentContextId);
-  const cart = useCartStore((s: any) => (currentContextId ? s.carts[currentContextId] : undefined) || EMPTY_ARRAY);
-  
-  const currentTableOrderId = useCartStore((s: any) => context?.tableId ? s.tableOrderIds[context.tableId] : undefined);
+  const cart = useCartStore(
+    (s: any) =>
+      (currentContextId ? s.carts[currentContextId] : undefined) || EMPTY_ARRAY,
+  );
+
+  const currentTableOrderId = useCartStore((s: any) =>
+    context?.tableId ? s.tableOrderIds[context.tableId] : undefined,
+  );
   const displayOrderId = currentTableOrderId || activeOrder?.orderId;
 
   const hasHydrated = useActiveOrdersStore((s: any) => s._hasHydrated);
@@ -488,9 +572,7 @@ export default function SummaryScreen() {
         .then((data) => {
           const oid = data.table?.currentOrderId || data.table?.CurrentOrderId;
           if (data.success && oid) {
-            useCartStore
-              .getState()
-              .setTableOrderId(context.tableId!, oid);
+            useCartStore.getState().setTableOrderId(context.tableId!, oid);
           }
         })
         .catch((err) => console.error("Summary ID sync error:", err));
@@ -508,10 +590,14 @@ export default function SummaryScreen() {
         .then((d) => {
           if (d?.serviceChargeReduced) {
             setScReduced(true);
-            useServiceChargeOverrideStore.getState().setOverride(displayOrderId, true);
+            useServiceChargeOverrideStore
+              .getState()
+              .setOverride(displayOrderId, true);
           } else {
             setScReduced(false);
-            useServiceChargeOverrideStore.getState().setOverride(displayOrderId, false);
+            useServiceChargeOverrideStore
+              .getState()
+              .setOverride(displayOrderId, false);
           }
         })
         .catch(() => {});
@@ -532,8 +618,17 @@ export default function SummaryScreen() {
     }
   }, [displayOrderId, isFocused]);
 
+  // Fetch cart items from DB when tableId is available and screen is focused
   useEffect(() => {
+    if (context?.tableId && isFocused) {
+      console.log(
+        `[Summary] Fetching cart from DB for table ${context.tableId}`,
+      );
+      useCartStore.getState().fetchCartFromDB(context.tableId);
+    }
+  }, [context?.tableId, isFocused]);
 
+  useEffect(() => {
     // 2. If activeOrder is missing, try fetching from kitchen ONCE
     if (!activeOrder && !hasAttemptedInitialFetch) {
       console.log(
@@ -556,12 +651,14 @@ export default function SummaryScreen() {
     fetch(`${API_URL}/api/menu/dishgroups/all`)
       .then((res) => res.json())
       .then((data) => setDishGroupsList(Array.isArray(data) ? data : []))
-      .catch((err) => console.warn("Failed to fetch dish groups inside summary:", err));
+      .catch((err) =>
+        console.warn("Failed to fetch dish groups inside summary:", err),
+      );
   }, [activeOrder]);
 
-   const user = useAuthStore((s: any) => s.user);
-   const permissions = useAuthStore((s: any) => s.permissions);
-   const isWaiter = useAuthStore((s: any) => s.isWaiter);
+  const user = useAuthStore((s: any) => s.user);
+  const permissions = useAuthStore((s: any) => s.permissions);
+  const isWaiter = useAuthStore((s: any) => s.isWaiter);
 
   const fetchServers = async () => {
     try {
@@ -581,8 +678,6 @@ export default function SummaryScreen() {
     return id ? s.discounts[id] : null;
   });
 
-
-
   const applyDiscount = useCartStore((s: any) => s.applyDiscount);
   const clearCart = useCartStore((s: any) => s.clearCart);
   const updateOrderDiscount = useActiveOrdersStore(
@@ -590,7 +685,7 @@ export default function SummaryScreen() {
   );
   const closeActiveOrder = useActiveOrdersStore((s: any) => s.closeActiveOrder);
   const activeOrders = useActiveOrdersStore((s: any) => s.activeOrders);
-  
+
   const selectedTablesText = useMemo(() => {
     return selectedMergeOrderIds
       .map((id) => {
@@ -605,7 +700,7 @@ export default function SummaryScreen() {
     setSelectedMergeOrderIds((prev) =>
       prev.includes(orderId)
         ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId]
+        : [...prev, orderId],
     );
   };
 
@@ -614,7 +709,10 @@ export default function SummaryScreen() {
     setIsMerging(true);
     try {
       if (!context?.tableId) {
-        showToast({ type: "error", message: "Merge is only available for active Dine-In tables" });
+        showToast({
+          type: "error",
+          message: "Merge is only available for active Dine-In tables",
+        });
         return;
       }
 
@@ -627,7 +725,10 @@ export default function SummaryScreen() {
         .filter((c): c is any => c !== null && c.tableId !== undefined);
 
       if (sourceTables.length === 0) {
-        showToast({ type: "error", message: "No valid source tables selected" });
+        showToast({
+          type: "error",
+          message: "No valid source tables selected",
+        });
         return;
       }
 
@@ -651,16 +752,18 @@ export default function SummaryScreen() {
       // 🚀 INSTANT SYNC AND CLEAR FOR ALL SOURCE TABLES
       for (const table of sourceTables) {
         useCartStore.getState().clearTableSession(table.tableId);
-        useTableStatusStore.getState().updateTableStatus(
-          table.tableId,
-          table.section,
-          table.tableNo,
-          "EMPTY",
-          "EMPTY",
-          0,
-          undefined,
-          0
-        );
+        useTableStatusStore
+          .getState()
+          .updateTableStatus(
+            table.tableId,
+            table.section,
+            table.tableNo,
+            "EMPTY",
+            "EMPTY",
+            0,
+            undefined,
+            0,
+          );
       }
 
       await useCartStore.getState().fetchCartFromDB(context.tableId);
@@ -704,11 +807,14 @@ export default function SummaryScreen() {
     try {
       setIsApplyingPromo(true);
       const token = useAuthStore.getState().token;
-      const res = await fetch(`${API_URL}/api/members/promocode/${encodeURIComponent(code.trim())}`, {
-        headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
-      });
+      const res = await fetch(
+        `${API_URL}/api/members/promocode/${encodeURIComponent(code.trim())}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
       if (!res.ok) {
         let errMsg = "Invalid Promo Code";
         try {
@@ -721,7 +827,11 @@ export default function SummaryScreen() {
       const data = await res.json();
       const promoAmount = parseFloat(data.Promoamount) || 0;
       if (promoAmount <= 0) {
-        showToast({ type: "warning", message: "No value", subtitle: "Promo code has 0 amount" });
+        showToast({
+          type: "warning",
+          message: "No value",
+          subtitle: "Promo code has 0 amount",
+        });
         return;
       }
 
@@ -737,7 +847,11 @@ export default function SummaryScreen() {
       if (currentContext) {
         updateOrderDiscount(currentContext, discountData);
       }
-      showToast({ type: "success", message: "Promo Code Applied", subtitle: `Discount of ${currencySymbol}${promoAmount.toFixed(2)} applied` });
+      showToast({
+        type: "success",
+        message: "Promo Code Applied",
+        subtitle: `Discount of ${currencySymbol}${promoAmount.toFixed(2)} applied`,
+      });
       setShowPromoModal(false);
       setPromoCodeInput("");
     } catch (err: any) {
@@ -754,8 +868,8 @@ export default function SummaryScreen() {
       const token = useAuthStore.getState().token;
       const res = await fetch(`${API_URL}/api/members/promocodes/all`, {
         headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -777,9 +891,10 @@ export default function SummaryScreen() {
   const filteredPromos = useMemo(() => {
     const query = promoCodeInput.trim().toLowerCase();
     if (!query) return availablePromos;
-    return availablePromos.filter(p => 
-      (p.Promocode || "").toLowerCase().includes(query) ||
-      (p.Name || "").toLowerCase().includes(query)
+    return availablePromos.filter(
+      (p) =>
+        (p.Promocode || "").toLowerCase().includes(query) ||
+        (p.Name || "").toLowerCase().includes(query),
     );
   }, [availablePromos, promoCodeInput]);
 
@@ -849,13 +964,20 @@ export default function SummaryScreen() {
       const contentType = cancelRes.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const errorText = await cancelRes.text();
-        console.error("❌ [Summary] Server returned non-JSON response:", errorText.substring(0, 200));
-        throw new Error(`Server Error: Received ${cancelRes.status} ${cancelRes.statusText}`);
+        console.error(
+          "❌ [Summary] Server returned non-JSON response:",
+          errorText.substring(0, 200),
+        );
+        throw new Error(
+          `Server Error: Received ${cancelRes.status} ${cancelRes.statusText}`,
+        );
       }
 
       const cancelData = await cancelRes.json();
       if (!cancelData.success) {
-        throw new Error(cancelData.error || "Failed to cancel order in backend");
+        throw new Error(
+          cancelData.error || "Failed to cancel order in backend",
+        );
       }
 
       showToast({
@@ -879,7 +1001,7 @@ export default function SummaryScreen() {
           }
           clearCart(); // This clears unsent items for the current context
           useOrderContextStore.getState().clearOrderContext(); // Clear context
-          
+
           if (
             context.orderType === "DINE_IN" &&
             context.section &&
@@ -898,10 +1020,10 @@ export default function SummaryScreen() {
       }, 500);
     } catch (error: any) {
       console.error("Cancel error:", error);
-      showToast({ 
-        type: "error", 
+      showToast({
+        type: "error",
         message: "Error cancelling order",
-        subtitle: error.message
+        subtitle: error.message,
       });
     } finally {
       setIsCancellingOrder(false);
@@ -935,14 +1057,13 @@ export default function SummaryScreen() {
     setShowBillOptions(false);
   };
 
-
   const handleReprintKOT = async () => {
     if (!cart.length) return;
 
     try {
       const kitchenGroups: Record<string, any[]> = {};
       const expandedItems: any[] = [];
-      
+
       cart
         .filter((i: any) => i.status !== "VOIDED")
         .forEach((item: any) => {
@@ -951,8 +1072,15 @@ export default function SummaryScreen() {
             item.comboSelections.forEach((g: any) => {
               if (Array.isArray(g.items)) {
                 g.items.forEach((opt: any) => {
-                  const optKitchenCode = opt.KitchenTypeCode || opt.kitchenCode || opt.kitchenTypeCode;
-                  const parentKitchenCode = item.KitchenTypeCode || item.kitchenCode || item.kitchenTypeCode || "0";
+                  const optKitchenCode =
+                    opt.KitchenTypeCode ||
+                    opt.kitchenCode ||
+                    opt.kitchenTypeCode;
+                  const parentKitchenCode =
+                    item.KitchenTypeCode ||
+                    item.kitchenCode ||
+                    item.kitchenTypeCode ||
+                    "0";
                   if (optKitchenCode && optKitchenCode !== parentKitchenCode) {
                     expandedItems.push({
                       ...opt,
@@ -961,7 +1089,8 @@ export default function SummaryScreen() {
                       price: 0,
                       name: `${opt.name} (Combo - ${item.name})`,
                       KitchenTypeCode: optKitchenCode,
-                      KitchenTypeName: opt.KitchenTypeName || opt.kitchenTypeName,
+                      KitchenTypeName:
+                        opt.KitchenTypeName || opt.kitchenTypeName,
                       PrinterIP: opt.PrinterIP || opt.printerIp,
                     });
                   }
@@ -981,7 +1110,7 @@ export default function SummaryScreen() {
         const kName =
           items[0].KitchenTypeName || (kCode === "0" ? "KITCHEN" : kCode);
         const printerIp = items[0].PrinterIP;
-        
+
         const kotData = {
           orderId: displayOrderId,
           orderNo: displayOrderId,
@@ -1034,7 +1163,7 @@ export default function SummaryScreen() {
 
   const handlePrintCheckoutBill = async () => {
     if (!cart.length) return;
-    
+
     try {
       const saleData = {
         items: cart,
@@ -1064,9 +1193,9 @@ export default function SummaryScreen() {
         const token = useAuthStore.getState().token;
         await fetch(`${API_URL}/api/orders/checkout`, {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ tableId: context.tableId }),
         });
@@ -1105,17 +1234,24 @@ export default function SummaryScreen() {
       const data = await res.json();
       if (data.success) {
         setScReduced(shouldReduce);
-        useServiceChargeOverrideStore.getState().setOverride(displayOrderId, shouldReduce);
+        useServiceChargeOverrideStore
+          .getState()
+          .setOverride(displayOrderId, shouldReduce);
         setShowBillOptions(false);
         showToast({
           type: "success",
-          message: shouldReduce ? "Service Charge Removed" : "Service Charge Restored",
-          subtitle: shouldReduce 
-            ? "Bill updated — service charge set to 0.00" 
+          message: shouldReduce
+            ? "Service Charge Removed"
+            : "Service Charge Restored",
+          subtitle: shouldReduce
+            ? "Bill updated — service charge set to 0.00"
             : "Bill updated — service charge restored to normal",
         });
       } else {
-        showToast({ type: "error", message: data.error || "Failed to update service charge" });
+        showToast({
+          type: "error",
+          message: data.error || "Failed to update service charge",
+        });
       }
     } catch (err) {
       console.error("SC toggle error:", err);
@@ -1149,13 +1285,18 @@ export default function SummaryScreen() {
         setShowBillOptions(false);
         showToast({
           type: "success",
-          message: shouldApply ? "Takeaway Charge Added" : "Takeaway Charge Removed",
-          subtitle: shouldApply 
+          message: shouldApply
+            ? "Takeaway Charge Added"
+            : "Takeaway Charge Removed",
+          subtitle: shouldApply
             ? `Bill updated — added takeaway charge of ${currencySymbol}${data.takeawayCharge.toFixed(2)}`
             : "Bill updated — takeaway charge removed",
         });
       } else {
-        showToast({ type: "error", message: data.error || "Failed to update takeaway charge" });
+        showToast({
+          type: "error",
+          message: data.error || "Failed to update takeaway charge",
+        });
       }
     } catch (err) {
       console.error("Takeaway toggle error:", err);
@@ -1171,7 +1312,9 @@ export default function SummaryScreen() {
 
   useEffect(() => {
     const fetchDishLoyaltyRewards = async () => {
-      const phone = loyaltyPhone ? `${selectedCountry.code} ${loyaltyPhone.trim()}` : "";
+      const phone = loyaltyPhone
+        ? `${selectedCountry.code} ${loyaltyPhone.trim()}`
+        : "";
       if (!phone || cart.length === 0) {
         setLoyaltyDiscountItems([]);
         setLoyaltyDiscountAmount(0);
@@ -1184,24 +1327,34 @@ export default function SummaryScreen() {
           DishId: i.DishId || i.dishId || i.id,
           Qty: i.qty,
           Price: i.price,
-          isDishReward: false
+          isDishReward: false,
         }));
 
-        const res = await fetch(`${API_URL}/api/loyalty/calculate-bill-rewards`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        const res = await fetch(
+          `${API_URL}/api/loyalty/calculate-bill-rewards`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ phone, items: mappedItems }),
           },
-          body: JSON.stringify({ phone, items: mappedItems })
-        });
+        );
         const data = await res.json();
         if (data.success) {
           const processed = (data.items || []).map((i: any) => ({
             ...i,
             qty: i.Qty !== undefined ? i.Qty : i.qty,
             price: i.Price !== undefined ? i.Price : i.price,
-            name: i.name || cart.find((raw: any) => String(raw.id || raw.DishId || raw.dishId).toLowerCase() === String(i.DishId || i.id).toLowerCase())?.name || "Dish"
+            name:
+              i.name ||
+              cart.find(
+                (raw: any) =>
+                  String(raw.id || raw.DishId || raw.dishId).toLowerCase() ===
+                  String(i.DishId || i.id).toLowerCase(),
+              )?.name ||
+              "Dish",
           }));
           setLoyaltyDiscountItems(processed);
           setLoyaltyDiscountAmount(data.totalDiscount || 0);
@@ -1226,10 +1379,6 @@ export default function SummaryScreen() {
     return loyaltyDiscountItems.length > 0 ? loyaltyDiscountItems : cart;
   }, [loyaltyDiscountItems, cart]);
 
-
-
-
-
   const totalItems = useMemo(
     () =>
       finalItems.reduce((sum: number, item: any) => {
@@ -1242,131 +1391,210 @@ export default function SummaryScreen() {
 
   const takeawayCharges = settings.takeawayCharges || 0;
 
-  const { grossTotal, totalItemDiscount, vipDiscountAmount, scEligibleSubtotal, calcTakeawayChargeAmt, takeawayQty, calculatedItems } = useMemo(() => {
+  const {
+    grossTotal,
+    totalItemDiscount,
+    vipDiscountAmount,
+    scEligibleSubtotal,
+    calcTakeawayChargeAmt,
+    takeawayQty,
+    calculatedItems,
+  } = useMemo(() => {
     const isVip = rewardMember?.IsVIP === true || rewardMember?.IsVIP === 1;
 
-    return finalItems.reduce((acc: any, item: any) => {
-      const isVoided = (item as any).status === "VOIDED";
-      if (isVoided) {
-        acc.calculatedItems.push(item);
-        return acc;
-      }
-      
-      const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
-      const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
-      const baseTotal = (item.price || 0) * item.qty;
-      let itemDiscount = 0;
-      const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
-      const discType = item.discountType || 'percentage';
-      
-      if (discAmt > 0) {
-        if (discType === 'percentage') {
-          itemDiscount = (discountBasis * (discAmt / 100)) * item.qty;
-        } else {
-          itemDiscount = Math.min(discAmt, discountBasis) * item.qty;
-        }
-      }
-
-      // Calculate VIP Discount
-      let vipItemDiscount = 0;
-      let matchedRuleId = null;
-
-      if (isVip && vipOffer) {
-        const itemDishId = item.id || item.DishId;
-        const itemDishGroupId = allDishes.find((d: any) => String(d.DishId).toLowerCase() === String(itemDishId).toLowerCase())?.DishGroupId;
-
-        let matchesOffer = false;
-        let ruleDiscountType: "PERCENTAGE" | "AMOUNT" = "PERCENTAGE";
-        let ruleDiscountValue = 0;
-
-        if (vipOffer.targetType === "DISH" || vipOffer.targetType === "BOTH") {
-          if (vipOffer.dishId) {
-            try {
-              const parsed = JSON.parse(vipOffer.dishId);
-              if (Array.isArray(parsed)) {
-                const match = parsed.find(r => String(r.id).toLowerCase() === String(itemDishId).toLowerCase());
-                if (match) {
-                  matchesOffer = true;
-                  ruleDiscountType = match.discountType === "AMOUNT" ? "AMOUNT" : "PERCENTAGE";
-                  ruleDiscountValue = Number(match.discountValue) || 0;
-                }
-              }
-            } catch (e) {
-              const targetDishIds = vipOffer.dishId.split(",").map((id: string) => id.trim().toLowerCase());
-              if (targetDishIds.includes(String(itemDishId).toLowerCase())) {
-                matchesOffer = true;
-                ruleDiscountType = vipOffer.discountType === "FIXED" ? "AMOUNT" : "PERCENTAGE";
-                ruleDiscountValue = vipOffer.discountValue || 0;
-              }
-            }
-          }
+    return finalItems.reduce(
+      (acc: any, item: any) => {
+        const isVoided = (item as any).status === "VOIDED";
+        if (isVoided) {
+          acc.calculatedItems.push(item);
+          return acc;
         }
 
-        if (!matchesOffer && (vipOffer.targetType === "GROUP" || vipOffer.targetType === "BOTH")) {
-          if (vipOffer.dishGroupId && itemDishGroupId) {
-            try {
-              const parsed = JSON.parse(vipOffer.dishGroupId);
-              if (Array.isArray(parsed)) {
-                const match = parsed.find(r => String(r.id).toLowerCase() === String(itemDishGroupId).toLowerCase());
-                if (match) {
-                  matchesOffer = true;
-                  ruleDiscountType = match.discountType === "AMOUNT" ? "AMOUNT" : "PERCENTAGE";
-                  ruleDiscountValue = Number(match.discountValue) || 0;
-                }
-              }
-            } catch (e) {
-              const targetGroupIds = vipOffer.dishGroupId.split(",").map((id: string) => id.trim().toLowerCase());
-              if (targetGroupIds.includes(String(itemDishGroupId).toLowerCase())) {
-                matchesOffer = true;
-                ruleDiscountType = vipOffer.discountType === "FIXED" ? "AMOUNT" : "PERCENTAGE";
-                ruleDiscountValue = vipOffer.discountValue || 0;
-              }
-            }
-          }
-        }
+        const isCombo =
+          item.isCombo === true ||
+          String(item.isCombo) === "1" ||
+          item.isCombo === 1;
+        const discountBasis = isCombo
+          ? (item.basePrice ?? item.price ?? 0)
+          : (item.price ?? 0);
+        const baseTotal = (item.price || 0) * item.qty;
+        let itemDiscount = 0;
+        const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
+        const discType = item.discountType || "percentage";
 
-        if (matchesOffer) {
-          matchedRuleId = "DYNAMIC";
-          const remainingBasis = Math.max(0, discountBasis - (itemDiscount / item.qty));
-
-          if (ruleDiscountType === "PERCENTAGE") {
-            vipItemDiscount = remainingBasis * (ruleDiscountValue / 100) * item.qty;
+        if (discAmt > 0) {
+          if (discType === "percentage") {
+            itemDiscount = discountBasis * (discAmt / 100) * item.qty;
           } else {
-            vipItemDiscount = Math.min(ruleDiscountValue, remainingBasis) * item.qty;
+            itemDiscount = Math.min(discAmt, discountBasis) * item.qty;
           }
         }
-      }
 
-      const itemSubtotal = baseTotal - itemDiscount - vipItemDiscount;
-      const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
-      const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
-      const itemTWCharge = isTakeawayItem ? item.qty * takeawayCharges : 0;
+        // Calculate VIP Discount
+        let vipItemDiscount = 0;
+        let matchedRuleId = null;
 
-      acc.calculatedItems.push({
-        ...item,
-        vipDiscountAmount: vipItemDiscount,
-        vipRuleId: matchedRuleId
-      });
+        if (isVip && vipOffer) {
+          const itemDishId = item.id || item.DishId;
+          const itemDishGroupId = allDishes.find(
+            (d: any) =>
+              String(d.DishId).toLowerCase() ===
+              String(itemDishId).toLowerCase(),
+          )?.DishGroupId;
 
-      return {
-        grossTotal: acc.grossTotal + baseTotal,
-        totalItemDiscount: acc.totalItemDiscount + itemDiscount,
-        vipDiscountAmount: acc.vipDiscountAmount + vipItemDiscount,
-        scEligibleSubtotal: acc.scEligibleSubtotal + (isSC ? itemSubtotal : 0),
-        calcTakeawayChargeAmt: acc.calcTakeawayChargeAmt + itemTWCharge,
-        takeawayQty: acc.takeawayQty + (isTakeawayItem ? item.qty : 0),
-        calculatedItems: acc.calculatedItems
-      };
-    }, { grossTotal: 0, totalItemDiscount: 0, vipDiscountAmount: 0, scEligibleSubtotal: 0, calcTakeawayChargeAmt: 0, takeawayQty: 0, calculatedItems: [] });
+          let matchesOffer = false;
+          let ruleDiscountType: "PERCENTAGE" | "AMOUNT" = "PERCENTAGE";
+          let ruleDiscountValue = 0;
+
+          if (
+            vipOffer.targetType === "DISH" ||
+            vipOffer.targetType === "BOTH"
+          ) {
+            if (vipOffer.dishId) {
+              try {
+                const parsed = JSON.parse(vipOffer.dishId);
+                if (Array.isArray(parsed)) {
+                  const match = parsed.find(
+                    (r) =>
+                      String(r.id).toLowerCase() ===
+                      String(itemDishId).toLowerCase(),
+                  );
+                  if (match) {
+                    matchesOffer = true;
+                    ruleDiscountType =
+                      match.discountType === "AMOUNT" ? "AMOUNT" : "PERCENTAGE";
+                    ruleDiscountValue = Number(match.discountValue) || 0;
+                  }
+                }
+              } catch (e) {
+                const targetDishIds = vipOffer.dishId
+                  .split(",")
+                  .map((id: string) => id.trim().toLowerCase());
+                if (targetDishIds.includes(String(itemDishId).toLowerCase())) {
+                  matchesOffer = true;
+                  ruleDiscountType =
+                    vipOffer.discountType === "FIXED" ? "AMOUNT" : "PERCENTAGE";
+                  ruleDiscountValue = vipOffer.discountValue || 0;
+                }
+              }
+            }
+          }
+
+          if (
+            !matchesOffer &&
+            (vipOffer.targetType === "GROUP" || vipOffer.targetType === "BOTH")
+          ) {
+            if (vipOffer.dishGroupId && itemDishGroupId) {
+              try {
+                const parsed = JSON.parse(vipOffer.dishGroupId);
+                if (Array.isArray(parsed)) {
+                  const match = parsed.find(
+                    (r) =>
+                      String(r.id).toLowerCase() ===
+                      String(itemDishGroupId).toLowerCase(),
+                  );
+                  if (match) {
+                    matchesOffer = true;
+                    ruleDiscountType =
+                      match.discountType === "AMOUNT" ? "AMOUNT" : "PERCENTAGE";
+                    ruleDiscountValue = Number(match.discountValue) || 0;
+                  }
+                }
+              } catch (e) {
+                const targetGroupIds = vipOffer.dishGroupId
+                  .split(",")
+                  .map((id: string) => id.trim().toLowerCase());
+                if (
+                  targetGroupIds.includes(String(itemDishGroupId).toLowerCase())
+                ) {
+                  matchesOffer = true;
+                  ruleDiscountType =
+                    vipOffer.discountType === "FIXED" ? "AMOUNT" : "PERCENTAGE";
+                  ruleDiscountValue = vipOffer.discountValue || 0;
+                }
+              }
+            }
+          }
+
+          if (matchesOffer) {
+            matchedRuleId = "DYNAMIC";
+            const remainingBasis = Math.max(
+              0,
+              discountBasis - itemDiscount / item.qty,
+            );
+
+            if (ruleDiscountType === "PERCENTAGE") {
+              vipItemDiscount =
+                remainingBasis * (ruleDiscountValue / 100) * item.qty;
+            } else {
+              vipItemDiscount =
+                Math.min(ruleDiscountValue, remainingBasis) * item.qty;
+            }
+          }
+        }
+
+        const itemSubtotal = baseTotal - itemDiscount - vipItemDiscount;
+        const isTakeawayItem =
+          item.isTakeaway ||
+          item.IsTakeaway ||
+          item.isTakeAway ||
+          item.IsTakeAway;
+        const isSC =
+          !isTakeawayItem &&
+          (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
+        const itemTWCharge = isTakeawayItem ? item.qty * takeawayCharges : 0;
+
+        acc.calculatedItems.push({
+          ...item,
+          vipDiscountAmount: vipItemDiscount,
+          vipRuleId: matchedRuleId,
+        });
+
+        return {
+          grossTotal: acc.grossTotal + baseTotal,
+          totalItemDiscount: acc.totalItemDiscount + itemDiscount,
+          vipDiscountAmount: acc.vipDiscountAmount + vipItemDiscount,
+          scEligibleSubtotal:
+            acc.scEligibleSubtotal + (isSC ? itemSubtotal : 0),
+          calcTakeawayChargeAmt: acc.calcTakeawayChargeAmt + itemTWCharge,
+          takeawayQty: acc.takeawayQty + (isTakeawayItem ? item.qty : 0),
+          calculatedItems: acc.calculatedItems,
+        };
+      },
+      {
+        grossTotal: 0,
+        totalItemDiscount: 0,
+        vipDiscountAmount: 0,
+        scEligibleSubtotal: 0,
+        calcTakeawayChargeAmt: 0,
+        takeawayQty: 0,
+        calculatedItems: [],
+      },
+    );
   }, [finalItems, takeawayCharges, rewardMember, vipOffer, allDishes]);
 
-  const subtotal = useMemo(() => grossTotal - totalItemDiscount - vipDiscountAmount, [grossTotal, totalItemDiscount, vipDiscountAmount]);
+  const subtotal = useMemo(
+    () => grossTotal - totalItemDiscount - vipDiscountAmount,
+    [grossTotal, totalItemDiscount, vipDiscountAmount],
+  );
   const allItemsHaveSC = useMemo(() => {
-    const activeItems = finalItems.filter((i: any) => i.status !== "VOIDED" && i.statusCode !== 0);
-    return activeItems.length > 0 && activeItems.every((item: any) => {
-      const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
-      return !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true);
-    });
+    const activeItems = finalItems.filter(
+      (i: any) => i.status !== "VOIDED" && i.statusCode !== 0,
+    );
+    return (
+      activeItems.length > 0 &&
+      activeItems.every((item: any) => {
+        const isTakeawayItem =
+          item.isTakeaway ||
+          item.IsTakeaway ||
+          item.isTakeAway ||
+          item.IsTakeAway;
+        return (
+          !isTakeawayItem &&
+          (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true)
+        );
+      })
+    );
   }, [finalItems]);
 
   const discountAmount = useMemo(() => {
@@ -1376,7 +1604,10 @@ export default function SummaryScreen() {
     return Math.min(discountInfo.value, subtotal);
   }, [discountInfo, subtotal]);
 
-  const netAfterDiscount = useMemo(() => subtotal - discountAmount, [subtotal, discountAmount]);
+  const netAfterDiscount = useMemo(
+    () => subtotal - discountAmount,
+    [subtotal, discountAmount],
+  );
 
   // Pro-rate the bill-level discount to service-charge-eligible items
   const scEligibleNet = useMemo(() => {
@@ -1390,7 +1621,7 @@ export default function SummaryScreen() {
     if (discountInfo.type === "percentage") {
       return discountInfo.value / 100;
     }
-    return subtotal > 0 ? (discountAmount / subtotal) : 0;
+    return subtotal > 0 ? discountAmount / subtotal : 0;
   }, [discountInfo, subtotal, discountAmount]);
 
   const currentTakeawayCharge = useMemo(() => {
@@ -1402,13 +1633,22 @@ export default function SummaryScreen() {
     () => (scReduced ? 0 : scEligibleNet * scRate),
     [scEligibleNet, scRate, scReduced],
   );
-  const taxableAmount = useMemo(() => netAfterDiscount + serviceChargeAmount + currentTakeawayCharge, [netAfterDiscount, serviceChargeAmount, currentTakeawayCharge]);
-  const gstAmountRaw = useMemo(() => taxableAmount * gstRate, [taxableAmount, gstRate]);
+  const taxableAmount = useMemo(
+    () => netAfterDiscount + serviceChargeAmount + currentTakeawayCharge,
+    [netAfterDiscount, serviceChargeAmount, currentTakeawayCharge],
+  );
+  const gstAmountRaw = useMemo(
+    () => taxableAmount * gstRate,
+    [taxableAmount, gstRate],
+  );
 
   // 🖥️ CUSTOMER DISPLAY REAL-TIME SYNC
   useEffect(() => {
     if (context && finalItems && finalItems.length > 0) {
-      console.log("🖥️ [Summary] Syncing finalItems to Customer Display:", finalItems.length);
+      console.log(
+        "🖥️ [Summary] Syncing finalItems to Customer Display:",
+        finalItems.length,
+      );
       CustomerDisplaySync.syncCart({
         orderContext: context,
         cart: finalItems,
@@ -1429,13 +1669,21 @@ export default function SummaryScreen() {
     CustomerDisplaySync.isPaymentActive = true;
     return () => {
       CustomerDisplaySync.isPaymentActive = false;
-      console.log("🖥️ [Summary] Unmounting screen, resetting Customer Display to idle");
+      console.log(
+        "🖥️ [Summary] Unmounting screen, resetting Customer Display to idle",
+      );
       CustomerDisplaySync.syncIdle();
     };
   }, []);
   // ✅ FIX: Round GST for display so breakdown matches the rounded grand total
-  const gstAmount = useMemo(() => Math.round(gstAmountRaw * 100) / 100, [gstAmountRaw]);
-  const grandTotal = useMemo(() => Math.round((taxableAmount + gstAmountRaw) * 100) / 100, [taxableAmount, gstAmountRaw]);
+  const gstAmount = useMemo(
+    () => Math.round(gstAmountRaw * 100) / 100,
+    [gstAmountRaw],
+  );
+  const grandTotal = useMemo(
+    () => Math.round((taxableAmount + gstAmountRaw) * 100) / 100,
+    [taxableAmount, gstAmountRaw],
+  );
   const displaySubtotal = subtotal;
 
   if (!context) return null;
@@ -1469,8 +1717,7 @@ export default function SummaryScreen() {
               borderColor: Theme.successBorder || "#bbf7d0",
               borderWidth: 1,
             },
-            !isTablet &&
-              isLandscape && { height: 32, paddingHorizontal: 8 },
+            !isTablet && isLandscape && { height: 32, paddingHorizontal: 8 },
           ]}
           onPress={() => setShowLoyaltyModal(true)}
         >
@@ -1501,8 +1748,7 @@ export default function SummaryScreen() {
             borderColor: Theme.primaryBorder,
             borderWidth: 1,
           },
-          !isTablet &&
-            isLandscape && { height: 32, paddingHorizontal: 8 },
+          !isTablet && isLandscape && { height: 32, paddingHorizontal: 8 },
         ]}
         onPress={() => setShowDiscountTypeModal(true)}
       >
@@ -1533,8 +1779,7 @@ export default function SummaryScreen() {
               borderColor: "#FEF3C7",
               borderWidth: 1,
             },
-            !isTablet &&
-              isLandscape && { height: 32, paddingHorizontal: 8 },
+            !isTablet && isLandscape && { height: 32, paddingHorizontal: 8 },
           ]}
           onPress={() => setShowRewardModal(true)}
         >
@@ -1563,7 +1808,9 @@ export default function SummaryScreen() {
           style={[
             styles.actionBtn,
             {
-              backgroundColor: rewardMember ? Theme.primary + "15" : Theme.bgCard,
+              backgroundColor: rewardMember
+                ? Theme.primary + "15"
+                : Theme.bgCard,
               borderColor: rewardMember ? Theme.primary : Theme.border,
               borderWidth: 1,
             },
@@ -1599,8 +1846,7 @@ export default function SummaryScreen() {
               borderColor: "#DDD6FE",
               borderWidth: 1,
             },
-            !isTablet &&
-              isLandscape && { height: 32, paddingHorizontal: 8 },
+            !isTablet && isLandscape && { height: 32, paddingHorizontal: 8 },
           ]}
           onPress={() => setShowPromoModal(true)}
         >
@@ -1631,8 +1877,7 @@ export default function SummaryScreen() {
             borderColor: Theme.dangerBorder,
             borderWidth: 1,
           },
-          !isTablet &&
-            isLandscape && { height: 32, paddingHorizontal: 8 },
+          !isTablet && isLandscape && { height: 32, paddingHorizontal: 8 },
         ]}
         onPress={() => {
           fetchCancelReasons();
@@ -1668,20 +1913,28 @@ export default function SummaryScreen() {
           style={[
             styles.headerBar,
             isPhone && isLandscape && { height: 50, marginBottom: 5 },
-            isPhone && !isLandscape && {
-              flexDirection: "column",
-              alignItems: "stretch",
-              minHeight: undefined,
-              gap: 8,
-              paddingBottom: 10,
-            },
+            isPhone &&
+              !isLandscape && {
+                flexDirection: "column",
+                alignItems: "stretch",
+                minHeight: undefined,
+                gap: 8,
+                paddingBottom: 10,
+              },
           ]}
         >
           {isPhone && !isLandscape ? (
             // MOBILE PORTRAIT LAYOUT
             <>
               {/* Row 1: Back Button + Title + Actions */}
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Pressable
                     style={styles.iconBtn}
@@ -1691,7 +1944,11 @@ export default function SummaryScreen() {
                         : router.replace("/(tabs)/category")
                     }
                   >
-                    <Ionicons name="arrow-back" size={24} color={Theme.textPrimary} />
+                    <Ionicons
+                      name="arrow-back"
+                      size={24}
+                      color={Theme.textPrimary}
+                    />
                   </Pressable>
                   <Text style={styles.title}>Summary</Text>
                 </View>
@@ -1759,7 +2016,11 @@ export default function SummaryScreen() {
                       : router.replace("/(tabs)/category")
                   }
                 >
-                  <Ionicons name="arrow-back" size={24} color={Theme.textPrimary} />
+                  <Ionicons
+                    name="arrow-back"
+                    size={24}
+                    color={Theme.textPrimary}
+                  />
                 </Pressable>
 
                 <View style={styles.headerTitleContainer}>
@@ -1792,7 +2053,9 @@ export default function SummaryScreen() {
                           },
                         ]}
                       >
-                        {context.orderType === "DINE_IN" ? "DINE-IN" : "TAKEAWAY"}
+                        {context.orderType === "DINE_IN"
+                          ? "DINE-IN"
+                          : "TAKEAWAY"}
                       </Text>
                     </View>
                     {context.orderType === "DINE_IN" && (
@@ -1803,21 +2066,14 @@ export default function SummaryScreen() {
                         </Text>
                       </View>
                     )}
-                    <Text
-                      style={[
-                        styles.orderSub,
-                        { marginLeft: 8 },
-                      ]}
-                    >
+                    <Text style={[styles.orderSub, { marginLeft: 8 }]}>
                       #{displayOrderId || "NEW"}
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.headerRight}>
-                {headerActions}
-              </View>
+              <View style={styles.headerRight}>{headerActions}</View>
             </>
           )}
         </View>
@@ -1839,162 +2095,303 @@ export default function SummaryScreen() {
             <FlatList
               data={finalItems}
               showsVerticalScrollIndicator={false}
-              keyExtractor={(item, index) => `item-${index}-${item.lineItemId || item.id}`}
+              keyExtractor={(item, index) =>
+                `item-${index}-${item.lineItemId || item.id}`
+              }
               contentContainerStyle={{ paddingBottom: 20 }}
               initialNumToRender={10}
               maxToRenderPerBatch={10}
               windowSize={5}
               removeClippedSubviews={true}
               renderItem={({ item }: { item: any }) => {
-                const isTakeawayItem = item.isTakeaway || item.IsTakeaway || item.isTakeAway || item.IsTakeAway;
-                const isSC = !isTakeawayItem && (Number(item.isServiceCharge) === 1 || item.isServiceCharge === true) && useGeneralSettingsStore.getState().settings.SVCIdentification !== false;
+                const isTakeawayItem =
+                  item.isTakeaway ||
+                  item.IsTakeaway ||
+                  item.isTakeAway ||
+                  item.IsTakeAway;
+                const isSC =
+                  !isTakeawayItem &&
+                  (Number(item.isServiceCharge) === 1 ||
+                    item.isServiceCharge === true) &&
+                  useGeneralSettingsStore.getState().settings
+                    .SVCIdentification !== false;
                 return (
-                  <View style={[
-                    styles.row,
-                    isSC && {
-                      borderWidth: 1.5,
-                      borderColor: Theme.dangerBorder,
-                      borderLeftColor: Theme.danger,
-                      backgroundColor: Theme.dangerBg,
-                    }
-                  ]}>
-                  <View style={styles.qtyBadge}>
-                    <Text style={styles.qtyBadgeText}>{item.qty}</Text>
-                  </View>
+                  <View
+                    style={[
+                      styles.row,
+                      isSC && {
+                        borderWidth: 1.5,
+                        borderColor: Theme.dangerBorder,
+                        borderLeftColor: Theme.danger,
+                        backgroundColor: Theme.dangerBg,
+                      },
+                    ]}
+                  >
+                    <View style={styles.qtyBadge}>
+                      <Text style={styles.qtyBadgeText}>{item.qty}</Text>
+                    </View>
 
-                  <View style={styles.rowContent}>
-                    <Text
-                      style={[
-                        styles.name,
-                        (item as any).status === "VOIDED" && styles.textVoided,
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {item.name}
-                      {item.isDishReward && " (Loyalty Reward 🎁)"}
-                      {(item as any).status === "VOIDED" && " (VOIDED)"}
-                    </Text>
-                    {(item.spicy && item.spicy !== "Medium") ||
-                    (item.oil && item.oil !== "Normal") ||
-                    (item.salt && item.salt !== "Normal") ||
-                    (item.sugar && item.sugar !== "Normal") ||
-                    item.note ? (
-                      <Text style={styles.sub} numberOfLines={1}>
-                        {[
-                          item.spicy && item.spicy !== "Medium"
-                            ? `🌶 ${item.spicy}`
-                            : "",
-                          item.oil && item.oil !== "Normal"
-                            ? `Oil: ${item.oil}`
-                            : "",
-                          item.salt && item.salt !== "Normal"
-                            ? `Salt: ${item.salt}`
-                            : "",
-                          item.sugar && item.sugar !== "Normal"
-                            ? `Sugar: ${item.sugar}`
-                            : "",
-                          item.note ? `📝 ${item.note}` : "",
-                        ]
-                          .filter(Boolean)
-                          .join("  ·  ")}
+                    <View style={styles.rowContent}>
+                      <Text
+                        style={[
+                          styles.name,
+                          (item as any).status === "VOIDED" &&
+                            styles.textVoided,
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {item.name}
+                        {item.isDishReward && " (Loyalty Reward 🎁)"}
+                        {(item as any).status === "VOIDED" && " (VOIDED)"}
                       </Text>
-                    ) : null}
-                    {item.modifiers &&
-                      Array.isArray(item.modifiers) &&
-                      item.modifiers.length > 0 && (
+                      {(item.spicy && item.spicy !== "Medium") ||
+                      (item.oil && item.oil !== "Normal") ||
+                      (item.salt && item.salt !== "Normal") ||
+                      (item.sugar && item.sugar !== "Normal") ||
+                      item.note ? (
                         <Text style={styles.sub} numberOfLines={1}>
-                          {item.modifiers
-                            .map((m: any) => `+ ${m.ModifierName}`)
+                          {[
+                            item.spicy && item.spicy !== "Medium"
+                              ? `🌶 ${item.spicy}`
+                              : "",
+                            item.oil && item.oil !== "Normal"
+                              ? `Oil: ${item.oil}`
+                              : "",
+                            item.salt && item.salt !== "Normal"
+                              ? `Salt: ${item.salt}`
+                              : "",
+                            item.sugar && item.sugar !== "Normal"
+                              ? `Sugar: ${item.sugar}`
+                              : "",
+                            item.note ? `📝 ${item.note}` : "",
+                          ]
+                            .filter(Boolean)
                             .join("  ·  ")}
                         </Text>
-                      )}
-                     {item.isCombo && item.comboSelections && Array.isArray(item.comboSelections) &&
-                      item.comboSelections
-                        .filter((group: any) => group.items && group.items.length > 0)
-                        .map((group: any, gIdx: number) => (
-                          <View key={`g-${gIdx}`} style={{ marginTop: 2, paddingLeft: 2 }}>
-                            <Text style={[styles.sub, { fontFamily: Fonts.bold, color: Theme.primary }]}>
-                              {group.groupName}:
-                            </Text>
-                            {(group.items || []).map((opt: any, oIdx: number) => {
-                              const effectiveAdd = (parseFloat(opt.surcharge || 0) + parseFloat(opt.dishPrice || 0));
-                              return (
-                                <Text key={`o-${oIdx}`} style={[styles.sub, { paddingLeft: 6 }]}>
-                                  ↳ {opt.name}{effectiveAdd > 0 ? ` (+$${effectiveAdd.toFixed(2)})` : ""}
-                                </Text>
-                              );
-                            })}
-                          </View>
-                        ))}
-                    {isSC && settings.serviceChargePercentage > 0 && item.status !== "VOIDED" && (
-                      <Text style={[styles.sub, { color: Theme.primary, fontFamily: Fonts.bold, marginTop: 4 }]}>
-                        Item Service Charge ({settings.serviceChargePercentage}%): {currencySymbol}{(() => {
-                          const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
-                          const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
-                          const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
-                          const isFixed = item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount);
-                          const itemDiscount = discAmt > 0
-                            ? (isFixed ? (Math.min(discAmt, discountBasis) * item.qty) : ((discountBasis * (discAmt / 100)) * item.qty))
-                            : 0;
-                          return ((item.price || 0) * item.qty - itemDiscount) * (settings.serviceChargePercentage / 100);
-                        })().toFixed(2)}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={[styles.priceBlock, { alignItems: 'flex-end', justifyContent: 'center' }]}>
-                    {(Number(item.discountAmount ?? item.discount ?? 0)) > 0 && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Text style={[styles.price, { fontSize: 13, textDecorationLine: "line-through", color: Theme.textMuted }]}>
-                          {currencySymbol}{((item.price || 0) * item.qty).toFixed(2)}
-                        </Text>
-                        <View style={{ backgroundColor: (Theme as any).successBg || '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                          <Text style={{ color: Theme.success || '#16a34a', fontSize: 11, fontFamily: Fonts.bold }}>
-                            {(() => {
-                              const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
-                              const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
-                              const rawDiscAmt = Number(item.discountAmount ?? item.discount ?? 0);
-                              const isFixed = item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount);
-                              if (isFixed) {
-                                const effectiveDisc = Math.min(rawDiscAmt, discountBasis);
-                                return `-${currencySymbol}${effectiveDisc.toFixed(2)}`;
-                              } else {
-                                return `-${rawDiscAmt}%`;
-                              }
-                            })()}
+                      ) : null}
+                      {item.modifiers &&
+                        Array.isArray(item.modifiers) &&
+                        item.modifiers.length > 0 && (
+                          <Text style={styles.sub} numberOfLines={1}>
+                            {item.modifiers
+                              .map((m: any) => `+ ${m.ModifierName}`)
+                              .join("  ·  ")}
                           </Text>
-                        </View>
-                      </View>
-                    )}
-                    <Text
+                        )}
+                      {item.isCombo &&
+                        item.comboSelections &&
+                        Array.isArray(item.comboSelections) &&
+                        item.comboSelections
+                          .filter(
+                            (group: any) =>
+                              group.items && group.items.length > 0,
+                          )
+                          .map((group: any, gIdx: number) => (
+                            <View
+                              key={`g-${gIdx}`}
+                              style={{ marginTop: 2, paddingLeft: 2 }}
+                            >
+                              <Text
+                                style={[
+                                  styles.sub,
+                                  {
+                                    fontFamily: Fonts.bold,
+                                    color: Theme.primary,
+                                  },
+                                ]}
+                              >
+                                {group.groupName}:
+                              </Text>
+                              {(group.items || []).map(
+                                (opt: any, oIdx: number) => {
+                                  const effectiveAdd =
+                                    parseFloat(opt.surcharge || 0) +
+                                    parseFloat(opt.dishPrice || 0);
+                                  return (
+                                    <Text
+                                      key={`o-${oIdx}`}
+                                      style={[styles.sub, { paddingLeft: 6 }]}
+                                    >
+                                      ↳ {opt.name}
+                                      {effectiveAdd > 0
+                                        ? ` (+$${effectiveAdd.toFixed(2)})`
+                                        : ""}
+                                    </Text>
+                                  );
+                                },
+                              )}
+                            </View>
+                          ))}
+                      {isSC &&
+                        settings.serviceChargePercentage > 0 &&
+                        item.status !== "VOIDED" && (
+                          <Text
+                            style={[
+                              styles.sub,
+                              {
+                                color: Theme.primary,
+                                fontFamily: Fonts.bold,
+                                marginTop: 4,
+                              },
+                            ]}
+                          >
+                            Item Service Charge (
+                            {settings.serviceChargePercentage}%):{" "}
+                            {currencySymbol}
+                            {(() => {
+                              const isCombo =
+                                item.isCombo === true ||
+                                String(item.isCombo) === "1" ||
+                                item.isCombo === 1;
+                              const discountBasis = isCombo
+                                ? (item.basePrice ?? item.price ?? 0)
+                                : (item.price ?? 0);
+                              const discAmt = Number(
+                                item.discountAmount ?? item.discount ?? 0,
+                              );
+                              const isFixed =
+                                item.discountType === "fixed" ||
+                                (item.discountType == null &&
+                                  item.discountAmount > 0 &&
+                                  !item.discount);
+                              const itemDiscount =
+                                discAmt > 0
+                                  ? isFixed
+                                    ? Math.min(discAmt, discountBasis) *
+                                      item.qty
+                                    : discountBasis * (discAmt / 100) * item.qty
+                                  : 0;
+                              return (
+                                ((item.price || 0) * item.qty - itemDiscount) *
+                                (settings.serviceChargePercentage / 100)
+                              );
+                            })().toFixed(2)}
+                          </Text>
+                        )}
+                    </View>
+
+                    <View
                       style={[
-                        styles.price,
-                        (item as any).status === "VOIDED" && styles.textVoided,
+                        styles.priceBlock,
+                        { alignItems: "flex-end", justifyContent: "center" },
                       ]}
                     >
-                      {currencySymbol}
-                      {(() => {
-                        const isCombo = item.isCombo === true || String(item.isCombo) === "1" || item.isCombo === 1;
-                        const discountBasis = isCombo ? (item.basePrice ?? item.price ?? 0) : (item.price ?? 0);
-                        const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
-                        const isFixed = item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount);
-                        const itemDiscount = discAmt > 0
-                          ? (isFixed ? (Math.min(discAmt, discountBasis) * item.qty) : ((discountBasis * (discAmt / 100)) * item.qty))
-                          : 0;
-                        return ((item.price || 0) * item.qty - itemDiscount);
-                      })().toFixed(2)}
-                    </Text>
-                  </View>
+                      {Number(item.discountAmount ?? item.discount ?? 0) >
+                        0 && (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.price,
+                              {
+                                fontSize: 13,
+                                textDecorationLine: "line-through",
+                                color: Theme.textMuted,
+                              },
+                            ]}
+                          >
+                            {currencySymbol}
+                            {((item.price || 0) * item.qty).toFixed(2)}
+                          </Text>
+                          <View
+                            style={{
+                              backgroundColor:
+                                (Theme as any).successBg || "#dcfce7",
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: Theme.success || "#16a34a",
+                                fontSize: 11,
+                                fontFamily: Fonts.bold,
+                              }}
+                            >
+                              {(() => {
+                                const isCombo =
+                                  item.isCombo === true ||
+                                  String(item.isCombo) === "1" ||
+                                  item.isCombo === 1;
+                                const discountBasis = isCombo
+                                  ? (item.basePrice ?? item.price ?? 0)
+                                  : (item.price ?? 0);
+                                const rawDiscAmt = Number(
+                                  item.discountAmount ?? item.discount ?? 0,
+                                );
+                                const isFixed =
+                                  item.discountType === "fixed" ||
+                                  (item.discountType == null &&
+                                    item.discountAmount > 0 &&
+                                    !item.discount);
+                                if (isFixed) {
+                                  const effectiveDisc = Math.min(
+                                    rawDiscAmt,
+                                    discountBasis,
+                                  );
+                                  return `-${currencySymbol}${effectiveDisc.toFixed(2)}`;
+                                } else {
+                                  return `-${rawDiscAmt}%`;
+                                }
+                              })()}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                      <Text
+                        style={[
+                          styles.price,
+                          (item as any).status === "VOIDED" &&
+                            styles.textVoided,
+                        ]}
+                      >
+                        {currencySymbol}
+                        {(() => {
+                          const isCombo =
+                            item.isCombo === true ||
+                            String(item.isCombo) === "1" ||
+                            item.isCombo === 1;
+                          const discountBasis = isCombo
+                            ? (item.basePrice ?? item.price ?? 0)
+                            : (item.price ?? 0);
+                          const discAmt = Number(
+                            item.discountAmount ?? item.discount ?? 0,
+                          );
+                          const isFixed =
+                            item.discountType === "fixed" ||
+                            (item.discountType == null &&
+                              item.discountAmount > 0 &&
+                              !item.discount);
+                          const itemDiscount =
+                            discAmt > 0
+                              ? isFixed
+                                ? Math.min(discAmt, discountBasis) * item.qty
+                                : discountBasis * (discAmt / 100) * item.qty
+                              : 0;
+                          return (item.price || 0) * item.qty - itemDiscount;
+                        })().toFixed(2)}
+                      </Text>
+                    </View>
 
-                  {item.status !== "VOIDED" && (
-                    <TouchableOpacity
-                      style={styles.itemTrashBtn}
-                      onPress={() => handleVoidItem(item)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color={Theme.danger} />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                    {item.status !== "VOIDED" && (
+                      <TouchableOpacity
+                        style={styles.itemTrashBtn}
+                        onPress={() => handleVoidItem(item)}
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color={Theme.danger}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 );
               }}
             />
@@ -2069,36 +2466,100 @@ export default function SummaryScreen() {
                 />
 
                 {loyaltyCustomer && (
-                  <View style={{
-                    backgroundColor: Theme.bgNav,
-                    borderColor: Theme.border,
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    padding: 12,
-                    marginBottom: 12,
-                    gap: 4
-                  }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <Ionicons name="ribbon" size={16} color={Theme.success || "#16a34a"} />
-                      <Text style={{ fontSize: 13, fontFamily: Fonts.black, color: Theme.textPrimary }}>
-                        Loyalty Member: {loyaltyCustomer.isNew ? "New Customer" : (loyaltyCustomer.Name || "Guest")}
+                  <View
+                    style={{
+                      backgroundColor: Theme.bgNav,
+                      borderColor: Theme.border,
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      padding: 12,
+                      marginBottom: 12,
+                      gap: 4,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 2,
+                      }}
+                    >
+                      <Ionicons
+                        name="ribbon"
+                        size={16}
+                        color={Theme.success || "#16a34a"}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontFamily: Fonts.black,
+                          color: Theme.textPrimary,
+                        }}
+                      >
+                        Loyalty Member:{" "}
+                        {loyaltyCustomer.isNew
+                          ? "New Customer"
+                          : loyaltyCustomer.Name || "Guest"}
                       </Text>
                     </View>
-                    <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginLeft: 22 }}>
-                      Visit Progress: {loyaltyCustomer.isNew ? "New Enrollment" : `${loyaltyCustomer.VisitCount} (Lifetime: ${loyaltyCustomer.TotalVisits || 0})`}
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: Fonts.bold,
+                        color: Theme.textSecondary,
+                        marginLeft: 22,
+                      }}
+                    >
+                      Visit Progress:{" "}
+                      {loyaltyCustomer.isNew
+                        ? "New Enrollment"
+                        : `${loyaltyCustomer.VisitCount} (Lifetime: ${loyaltyCustomer.TotalVisits || 0})`}
                     </Text>
-                    <Text style={{ fontSize: 12, fontFamily: Fonts.medium, color: Theme.textSecondary, marginLeft: 22 }}>
-                      Reward Status: {loyaltyCustomer.isNew
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: Fonts.medium,
+                        color: Theme.textSecondary,
+                        marginLeft: 22,
+                      }}
+                    >
+                      Reward Status:{" "}
+                      {loyaltyCustomer.isNew
                         ? "Enrolling on Checkout"
-                        : (loyaltyCustomer.RewardPending === 1 || loyaltyCustomer.VisitCount === 9)
+                        : loyaltyCustomer.RewardPending === 1 ||
+                            loyaltyCustomer.VisitCount === 9
                           ? "Reward Available! 🎉"
                           : `Next Reward in ${9 - loyaltyCustomer.VisitCount} Visits`}
                     </Text>
                     {loyaltyDiscountAmount > 0 && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, padding: 8, backgroundColor: Theme.successBg || '#dcfce7', borderRadius: 8, marginLeft: 22 }}>
-                        <MaterialCommunityIcons name="gift" size={14} color={Theme.success || "#16a34a"} />
-                        <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.success || "#16a34a", flex: 1 }}>
-                          Dish Loyalty Applied: Saved {currencySymbol}{loyaltyDiscountAmount.toFixed(2)} 🎉
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                          marginTop: 6,
+                          padding: 8,
+                          backgroundColor: Theme.successBg || "#dcfce7",
+                          borderRadius: 8,
+                          marginLeft: 22,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="gift"
+                          size={14}
+                          color={Theme.success || "#16a34a"}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: Fonts.bold,
+                            color: Theme.success || "#16a34a",
+                            flex: 1,
+                          }}
+                        >
+                          Dish Loyalty Applied: Saved {currencySymbol}
+                          {loyaltyDiscountAmount.toFixed(2)} 🎉
                         </Text>
                       </View>
                     )}
@@ -2106,168 +2567,329 @@ export default function SummaryScreen() {
                 )}
 
                 {/* 🏆 REWARD POINTS MEMBER DISPLAY */}
-                {rewardMember && (() => {
-                  const symbol = settings?.currencySymbol || "$";
-                  const rewardCreditVal = parseFloat(rewardMember.RewardCredit) || 0;
-                  return (
-                    <View
-                      style={{
-                        backgroundColor: Theme.bgInput,
-                        borderColor: Theme.border,
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        padding: 12,
-                        marginBottom: 12,
-                        gap: 4
-                      }}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Ionicons name="gift" size={16} color={Theme.primary} />
-                        <Text style={{ fontSize: 13, fontFamily: Fonts.black, color: Theme.textPrimary, flex: 1 }}>
-                          {showRewardPoints ? `Reward Member: ${rewardMember.Name}` : rewardMember.Name}
-                        </Text>
-                        {Boolean(rewardMember.IsVIP) && (
-                          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#A855F7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 4 }}>
-                            <Ionicons name="sparkles" size={10} color="#fff" />
-                            <Text style={{ fontSize: 9, fontFamily: Fonts.black, color: "#fff", textTransform: "uppercase" }}>VIP</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 22, marginVertical: 4 }}>
-                        <TouchableOpacity
-                          onPress={() => setShowRewardModal(true)}
-                          style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: Theme.bgCard, borderWidth: 1, borderColor: Theme.border }}
-                        >
-                          <Text style={{ fontSize: 11, fontFamily: Fonts.bold, color: Theme.primary }}>Change</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            // If the current discount was applied as a reward discount, clear it too
-                            if (discountInfo?.applied && discountInfo?.label?.startsWith("Reward:")) {
-                              const cleared = { applied: false, type: "fixed" as const, value: 0, label: "" };
-                              applyDiscount(cleared);
-                              const ctx = getOrderContext();
-                              if (ctx) updateOrderDiscount(ctx, cleared);
-                            }
-                            setRewardMember(null);
-                            setVipOffer(null);
+                {rewardMember &&
+                  (() => {
+                    const symbol = settings?.currencySymbol || "$";
+                    const rewardCreditVal =
+                      parseFloat(rewardMember.RewardCredit) || 0;
+                    return (
+                      <View
+                        style={{
+                          backgroundColor: Theme.bgInput,
+                          borderColor: Theme.border,
+                          borderWidth: 1,
+                          borderRadius: 10,
+                          padding: 12,
+                          marginBottom: 12,
+                          gap: 4,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
                           }}
-                          style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: Theme.dangerBg, borderWidth: 1, borderColor: Theme.dangerBorder }}
                         >
-                          <Text style={{ fontSize: 11, fontFamily: Fonts.bold, color: Theme.danger }}>Remove</Text>
-                        </TouchableOpacity>
-                      </View>
+                          <Ionicons
+                            name="gift"
+                            size={16}
+                            color={Theme.primary}
+                          />
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontFamily: Fonts.black,
+                              color: Theme.textPrimary,
+                              flex: 1,
+                            }}
+                          >
+                            {showRewardPoints
+                              ? `Reward Member: ${rewardMember.Name}`
+                              : rewardMember.Name}
+                          </Text>
+                          {Boolean(rewardMember.IsVIP) && (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                backgroundColor: "#A855F7",
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                borderRadius: 6,
+                                gap: 4,
+                              }}
+                            >
+                              <Ionicons
+                                name="sparkles"
+                                size={10}
+                                color="#fff"
+                              />
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontFamily: Fonts.black,
+                                  color: "#fff",
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                VIP
+                              </Text>
+                            </View>
+                          )}
+                        </View>
 
-                      <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginLeft: 22 }}>
-                        Phone: {rewardMember.Phone}
-                      </Text>
-
-                      {showRewardPoints && (
-                        <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.primary, marginLeft: 22 }}>
-                          Reward Balance: {currencySymbol}{rewardCreditVal.toFixed(2)}
-                        </Text>
-                      )}
-
-                      {Boolean(rewardMember.IsVIP) && (
-                        <>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            marginLeft: 22,
+                            marginVertical: 4,
+                          }}
+                        >
+                          <TouchableOpacity
+                            onPress={() => setShowRewardModal(true)}
+                            style={{
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              borderRadius: 6,
+                              backgroundColor: Theme.bgCard,
+                              borderWidth: 1,
+                              borderColor: Theme.border,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 11,
+                                fontFamily: Fonts.bold,
+                                color: Theme.primary,
+                              }}
+                            >
+                              Change
+                            </Text>
+                          </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => {
-                              setOfferTargetType(vipOffer?.targetType || "DISH");
-                              setSelectedOfferDishId(vipOffer?.dishId || "");
-                              setSelectedOfferGroupId(vipOffer?.dishGroupId || "");
-                              setOfferDiscountType(vipOffer?.discountType || "PERCENTAGE");
-                              setOfferDiscountValue(vipOffer ? String(vipOffer.discountValue) : "");
-                              setShowVipOfferModal(true);
+                              // If the current discount was applied as a reward discount, clear it too
+                              if (
+                                discountInfo?.applied &&
+                                discountInfo?.label?.startsWith("Reward:")
+                              ) {
+                                const cleared = {
+                                  applied: false,
+                                  type: "fixed" as const,
+                                  value: 0,
+                                  label: "",
+                                };
+                                applyDiscount(cleared);
+                                const ctx = getOrderContext();
+                                if (ctx) updateOrderDiscount(ctx, cleared);
+                              }
+                              setRewardMember(null);
+                              setVipOffer(null);
                             }}
+                            style={{
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              borderRadius: 6,
+                              backgroundColor: Theme.dangerBg,
+                              borderWidth: 1,
+                              borderColor: Theme.dangerBorder,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 11,
+                                fontFamily: Fonts.bold,
+                                color: Theme.danger,
+                              }}
+                            >
+                              Remove
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: Fonts.bold,
+                            color: Theme.textSecondary,
+                            marginLeft: 22,
+                          }}
+                        >
+                          Phone: {rewardMember.Phone}
+                        </Text>
+
+                        {showRewardPoints && (
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontFamily: Fonts.bold,
+                              color: Theme.primary,
+                              marginLeft: 22,
+                            }}
+                          >
+                            Reward Balance: {currencySymbol}
+                            {rewardCreditVal.toFixed(2)}
+                          </Text>
+                        )}
+
+                        {Boolean(rewardMember.IsVIP) && (
+                          <>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setOfferTargetType(
+                                  vipOffer?.targetType || "DISH",
+                                );
+                                setSelectedOfferDishId(vipOffer?.dishId || "");
+                                setSelectedOfferGroupId(
+                                  vipOffer?.dishGroupId || "",
+                                );
+                                setOfferDiscountType(
+                                  vipOffer?.discountType || "PERCENTAGE",
+                                );
+                                setOfferDiscountValue(
+                                  vipOffer
+                                    ? String(vipOffer.discountValue)
+                                    : "",
+                                );
+                                setShowVipOfferModal(true);
+                              }}
+                              style={{
+                                marginTop: 8,
+                                marginLeft: 22,
+                                backgroundColor: vipOffer
+                                  ? "#10B981"
+                                  : "#A855F7",
+                                borderRadius: 8,
+                                paddingVertical: 8,
+                                paddingHorizontal: 12,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "row",
+                                gap: 6,
+                              }}
+                            >
+                              <Ionicons
+                                name="sparkles"
+                                size={14}
+                                color="#fff"
+                              />
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: Fonts.black,
+                                  color: "#fff",
+                                }}
+                              >
+                                {vipOffer
+                                  ? "Edit VIP Offer"
+                                  : "Apply VIP Offer"}
+                              </Text>
+                              {vipOffer && (
+                                <TouchableOpacity
+                                  onPress={(e) => {
+                                    e.stopPropagation();
+                                    setVipOffer(null);
+                                  }}
+                                  style={{ marginLeft: 8, padding: 2 }}
+                                >
+                                  <Ionicons
+                                    name="close-circle"
+                                    size={14}
+                                    color="#fff"
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </TouchableOpacity>
+
+                            {vipOffer && (
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  fontFamily: Fonts.bold,
+                                  color: "#10B981",
+                                  marginLeft: 22,
+                                  marginTop: 4,
+                                }}
+                              >
+                                Applied:{" "}
+                                {vipOffer.discountType === "PERCENTAGE"
+                                  ? `${vipOffer.discountValue}%`
+                                  : `${currencySymbol}${vipOffer.discountValue}`}{" "}
+                                Off{" "}
+                                {vipOffer.targetType === "DISH"
+                                  ? "Selected Dish"
+                                  : "Selected Group"}
+                              </Text>
+                            )}
+                          </>
+                        )}
+
+                        {showRewardPoints && rewardCreditVal > 0 && (
+                          <TouchableOpacity
                             style={{
                               marginTop: 8,
                               marginLeft: 22,
-                              backgroundColor: vipOffer ? "#10B981" : "#A855F7",
+                              backgroundColor: Theme.warningBg,
+                              borderColor: Theme.warningBorder,
+                              borderWidth: 1,
                               borderRadius: 8,
-                              paddingVertical: 8,
+                              paddingVertical: 6,
                               paddingHorizontal: 12,
-                              alignItems: "center",
-                              justifyContent: "center",
+                              alignSelf: "flex-start",
                               flexDirection: "row",
-                              gap: 6
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                            onPress={() => {
+                              const discountData = {
+                                applied: true,
+                                type: "fixed" as const,
+                                value: rewardCreditVal,
+                                label: `Reward: ${rewardMember.Name}`,
+                              };
+                              applyDiscount(discountData);
+                              const currentContext = getOrderContext();
+                              if (currentContext) {
+                                updateOrderDiscount(
+                                  currentContext,
+                                  discountData,
+                                );
+                              }
+
+                              // Update local rewardMember state to reflect zero credit immediately in UI
+                              setRewardMember((prev: any) =>
+                                prev ? { ...prev, RewardCredit: 0 } : prev,
+                              );
+
+                              showToast({
+                                type: "success",
+                                message: "Reward Applied",
+                                subtitle: `Redeemed ${currencySymbol}${rewardCreditVal.toFixed(2)} reward credit as discount`,
+                              });
                             }}
                           >
-                            <Ionicons name="sparkles" size={14} color="#fff" />
-                            <Text style={{ fontSize: 12, fontFamily: Fonts.black, color: "#fff" }}>
-                              {vipOffer ? "Edit VIP Offer" : "Apply VIP Offer"}
+                            <Ionicons
+                              name="pricetag"
+                              size={14}
+                              color={Theme.warning}
+                            />
+                            <Text
+                              style={{
+                                fontFamily: Fonts.bold,
+                                fontSize: 12,
+                                color: Theme.warning,
+                              }}
+                            >
+                              Redeem Reward Discount
                             </Text>
-                            {vipOffer && (
-                              <TouchableOpacity
-                                onPress={(e) => {
-                                  e.stopPropagation();
-                                  setVipOffer(null);
-                                }}
-                                style={{ marginLeft: 8, padding: 2 }}
-                              >
-                                <Ionicons name="close-circle" size={14} color="#fff" />
-                              </TouchableOpacity>
-                            )}
                           </TouchableOpacity>
-
-                          {vipOffer && (
-                            <Text style={{ fontSize: 11, fontFamily: Fonts.bold, color: "#10B981", marginLeft: 22, marginTop: 4 }}>
-                              Applied: {vipOffer.discountType === "PERCENTAGE" ? `${vipOffer.discountValue}%` : `${currencySymbol}${vipOffer.discountValue}`} Off {vipOffer.targetType === "DISH" ? "Selected Dish" : "Selected Group"}
-                            </Text>
-                          )}
-                        </>
-                      )}
-
-                      {showRewardPoints && rewardCreditVal > 0 && (
-                        <TouchableOpacity
-                          style={{
-                            marginTop: 8,
-                            marginLeft: 22,
-                            backgroundColor: Theme.warningBg,
-                            borderColor: Theme.warningBorder,
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            alignSelf: "flex-start",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 6
-                          }}
-                          onPress={() => {
-                            const discountData = {
-                              applied: true,
-                              type: "fixed" as const,
-                              value: rewardCreditVal,
-                              label: `Reward: ${rewardMember.Name}`,
-                            };
-                            applyDiscount(discountData);
-                            const currentContext = getOrderContext();
-                            if (currentContext) {
-                              updateOrderDiscount(currentContext, discountData);
-                            }
-
-                            // Update local rewardMember state to reflect zero credit immediately in UI
-                            setRewardMember((prev: any) =>
-                              prev ? { ...prev, RewardCredit: 0 } : prev
-                            );
-
-                            showToast({
-                              type: "success",
-                              message: "Reward Applied",
-                              subtitle: `Redeemed ${currencySymbol}${rewardCreditVal.toFixed(2)} reward credit as discount`
-                            });
-                          }}
-                        >
-                          <Ionicons name="pricetag" size={14} color={Theme.warning} />
-                          <Text style={{ fontFamily: Fonts.bold, fontSize: 12, color: Theme.warning }}>
-                            Redeem Reward Discount
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
-                })()}
+                        )}
+                      </View>
+                    );
+                  })()}
 
                 <View
                   style={[
@@ -2295,9 +2917,9 @@ export default function SummaryScreen() {
                   </Text>
                 </View>
 
-                {(discountAmount + totalItemDiscount + vipDiscountAmount) > 0 && (
+                {discountAmount + totalItemDiscount + vipDiscountAmount > 0 && (
                   <>
-                    {(discountAmount + totalItemDiscount) > 0 && (
+                    {discountAmount + totalItemDiscount > 0 && (
                       <View
                         style={[
                           styles.summaryRow,
@@ -2411,7 +3033,10 @@ export default function SummaryScreen() {
                         isPhone && !isLandscape && { fontSize: 13 },
                       ]}
                     >
-                      {allItemsHaveSC ? "Service Charge" : "Item Service Charge"} ({settings.serviceChargePercentage}%)
+                      {allItemsHaveSC
+                        ? "Service Charge"
+                        : "Item Service Charge"}{" "}
+                      ({settings.serviceChargePercentage}%)
                     </Text>
                     <Text
                       style={[
@@ -2439,7 +3064,8 @@ export default function SummaryScreen() {
                         isPhone && !isLandscape && { fontSize: 13 },
                       ]}
                     >
-                      Takeaway Charges ({currencySymbol}{takeawayCharges.toFixed(2)} * {takeawayQty})
+                      Takeaway Charges ({currencySymbol}
+                      {takeawayCharges.toFixed(2)} * {takeawayQty})
                     </Text>
                     <Text
                       style={[
@@ -2492,8 +3118,6 @@ export default function SummaryScreen() {
                     style={[styles.dashLine, { borderColor: Theme.border }]}
                   />
                 </View>
-
-
 
                 {/* SERVER SELECTION & BILL BUTTON */}
                 <View
@@ -2719,13 +3343,18 @@ export default function SummaryScreen() {
                     }
                     const canPay = permissions["OPRSET"]?.canAdd;
                     if (!canPay) {
-                      if (Platform.OS === 'web') {
+                      if (Platform.OS === "web") {
                         router.replace("/(tabs)/category");
                       } else {
                         Alert.alert(
                           "Access Denied",
                           "You are not authorized to process payments.",
-                          [{ text: "OK", onPress: () => router.replace("/(tabs)/category") }]
+                          [
+                            {
+                              text: "OK",
+                              onPress: () => router.replace("/(tabs)/category"),
+                            },
+                          ],
                         );
                       }
                       return;
@@ -2733,7 +3362,9 @@ export default function SummaryScreen() {
                     router.push({
                       pathname: "/payment",
                       params: {
-                        mobileNo: loyaltyPhone ? `${selectedCountry.code} ${loyaltyPhone.trim()}` : "",
+                        mobileNo: loyaltyPhone
+                          ? `${selectedCountry.code} ${loyaltyPhone.trim()}`
+                          : "",
                         customerName: loyaltyName || "",
                         rewardMemberId: rewardMember?.MemberId || "",
                         vipOffer: vipOffer ? JSON.stringify(vipOffer) : "",
@@ -2802,7 +3433,9 @@ export default function SummaryScreen() {
                 marginBottom: 20,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
                 <View
                   style={{
                     backgroundColor: Theme.primaryLight,
@@ -2880,7 +3513,11 @@ export default function SummaryScreen() {
                     Apply discount to the entire bill
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Theme.textMuted} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={Theme.textMuted}
+                />
               </TouchableOpacity>
 
               {/* Option 2: Item Discount */}
@@ -2931,7 +3568,11 @@ export default function SummaryScreen() {
                     Apply discount to specific menu items
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Theme.textMuted} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={Theme.textMuted}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -2974,11 +3615,20 @@ export default function SummaryScreen() {
         <TouchableWithoutFeedback onPress={() => setShowPromoModal(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, { maxWidth: 420, maxHeight: "85%" }]}>
+              <View
+                style={[
+                  styles.modalContent,
+                  { maxWidth: 420, maxHeight: "85%" },
+                ]}
+              >
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Promo Codes</Text>
                   <TouchableOpacity onPress={() => setShowPromoModal(false)}>
-                    <Ionicons name="close" size={24} color={Theme.textPrimary} />
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={Theme.textPrimary}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -3012,11 +3662,25 @@ export default function SummaryScreen() {
                 />
 
                 {loadingPromos ? (
-                  <ActivityIndicator size="small" color={Theme.primary} style={{ marginVertical: 20 }} />
+                  <ActivityIndicator
+                    size="small"
+                    color={Theme.primary}
+                    style={{ marginVertical: 20 }}
+                  />
                 ) : (
-                  <ScrollView style={{ maxHeight: 220, marginBottom: 20 }} showsVerticalScrollIndicator={true}>
+                  <ScrollView
+                    style={{ maxHeight: 220, marginBottom: 20 }}
+                    showsVerticalScrollIndicator={true}
+                  >
                     {filteredPromos.length === 0 ? (
-                      <Text style={{ textAlign: "center", color: Theme.textMuted, marginVertical: 15, fontFamily: Fonts.regular }}>
+                      <Text
+                        style={{
+                          textAlign: "center",
+                          color: Theme.textMuted,
+                          marginVertical: 15,
+                          fontFamily: Fonts.regular,
+                        }}
+                      >
                         No active promo codes found
                       </Text>
                     ) : (
@@ -3037,15 +3701,35 @@ export default function SummaryScreen() {
                           onPress={() => handlePromoCode(item.Promocode)}
                         >
                           <View style={{ flex: 1, marginRight: 10 }}>
-                            <Text style={{ fontFamily: Fonts.bold, fontSize: 15, color: Theme.textPrimary }}>
+                            <Text
+                              style={{
+                                fontFamily: Fonts.bold,
+                                fontSize: 15,
+                                color: Theme.textPrimary,
+                              }}
+                            >
                               {item.Promocode}
                             </Text>
-                            <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: Theme.textSecondary, marginTop: 2 }}>
+                            <Text
+                              style={{
+                                fontFamily: Fonts.medium,
+                                fontSize: 12,
+                                color: Theme.textSecondary,
+                                marginTop: 2,
+                              }}
+                            >
                               {item.Name} ({item.Phone})
                             </Text>
                           </View>
-                          <Text style={{ fontFamily: Fonts.black, fontSize: 16, color: Theme.primary }}>
-                            {currencySymbol}{Number(item.Promoamount || 0).toFixed(2)}
+                          <Text
+                            style={{
+                              fontFamily: Fonts.black,
+                              fontSize: 16,
+                              color: Theme.primary,
+                            }}
+                          >
+                            {currencySymbol}
+                            {Number(item.Promoamount || 0).toFixed(2)}
                           </Text>
                         </TouchableOpacity>
                       ))
@@ -3073,7 +3757,9 @@ export default function SummaryScreen() {
                       styles.mergeConfirmBtn,
                       styles.mergeConfirmBtnPrimary,
                       { paddingVertical: 12 },
-                      (!promoCodeInput.trim() || isApplyingPromo) && { opacity: 0.6 },
+                      (!promoCodeInput.trim() || isApplyingPromo) && {
+                        opacity: 0.6,
+                      },
                     ]}
                     onPress={() => handlePromoCode(promoCodeInput)}
                     disabled={!promoCodeInput.trim() || isApplyingPromo}
@@ -3081,7 +3767,9 @@ export default function SummaryScreen() {
                     {isApplyingPromo ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={styles.mergeConfirmBtnPrimaryText}>Apply</Text>
+                      <Text style={styles.mergeConfirmBtnPrimaryText}>
+                        Apply
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -3132,7 +3820,9 @@ export default function SummaryScreen() {
               if (context.tableId && itemToVoid) {
                 const storeState = useCartStore.getState() as any;
                 const currentCart = storeState.carts[currentContextId] || [];
-                const updatedCart = currentCart.filter((it: any) => it.lineItemId !== itemToVoid.lineItemId);
+                const updatedCart = currentCart.filter(
+                  (it: any) => it.lineItemId !== itemToVoid.lineItemId,
+                );
                 storeState.setCartItems(context.tableId, updatedCart);
               }
             }
@@ -3176,11 +3866,24 @@ export default function SummaryScreen() {
         <TouchableWithoutFeedback onPress={() => setShowRewardModal(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, { maxWidth: 450, maxHeight: "85%" }]}>
+              <View
+                style={[
+                  styles.modalContent,
+                  { maxWidth: 450, maxHeight: "85%" },
+                ]}
+              >
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{showRewardPoints ? "Reward Member Lookup" : "Select Member"}</Text>
+                  <Text style={styles.modalTitle}>
+                    {showRewardPoints
+                      ? "Reward Member Lookup"
+                      : "Select Member"}
+                  </Text>
                   <TouchableOpacity onPress={() => setShowRewardModal(false)}>
-                    <Ionicons name="close" size={24} color={Theme.textPrimary} />
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={Theme.textPrimary}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -3214,12 +3917,28 @@ export default function SummaryScreen() {
                 />
 
                 {isSearchingRewards ? (
-                  <ActivityIndicator size="small" color={Theme.primary} style={{ marginVertical: 20 }} />
+                  <ActivityIndicator
+                    size="small"
+                    color={Theme.primary}
+                    style={{ marginVertical: 20 }}
+                  />
                 ) : (
-                  <ScrollView style={{ maxHeight: 220, marginBottom: 20 }} showsVerticalScrollIndicator={true}>
+                  <ScrollView
+                    style={{ maxHeight: 220, marginBottom: 20 }}
+                    showsVerticalScrollIndicator={true}
+                  >
                     {rewardSearchResults.length === 0 ? (
-                      <Text style={{ textAlign: "center", color: Theme.textMuted, marginVertical: 15, fontFamily: Fonts.regular }}>
-                        {rewardSearchText ? "No matching members found" : "Type to search members"}
+                      <Text
+                        style={{
+                          textAlign: "center",
+                          color: Theme.textMuted,
+                          marginVertical: 15,
+                          fontFamily: Fonts.regular,
+                        }}
+                      >
+                        {rewardSearchText
+                          ? "No matching members found"
+                          : "Type to search members"}
                       </Text>
                     ) : (
                       rewardSearchResults.map((item) => (
@@ -3244,21 +3963,54 @@ export default function SummaryScreen() {
                           }}
                         >
                           <View style={{ flex: 1, marginRight: 10 }}>
-                            <Text style={{ fontFamily: Fonts.bold, fontSize: 15, color: Theme.textPrimary }}>
+                            <Text
+                              style={{
+                                fontFamily: Fonts.bold,
+                                fontSize: 15,
+                                color: Theme.textPrimary,
+                              }}
+                            >
                               {item.Name}
                             </Text>
-                            <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: Theme.textSecondary, marginTop: 2 }}>
+                            <Text
+                              style={{
+                                fontFamily: Fonts.medium,
+                                fontSize: 12,
+                                color: Theme.textSecondary,
+                                marginTop: 2,
+                              }}
+                            >
                               Phone: {item.Phone}
                             </Text>
                           </View>
                           <View style={{ alignItems: "flex-end" }}>
                             {showRewardPoints && (
-                              <Text style={{ fontFamily: Fonts.black, fontSize: 14, color: "#D97706" }}>
-                                {currencySymbol}{(parseFloat(item.RewardCredit) || 0).toFixed(2)} Rewards
+                              <Text
+                                style={{
+                                  fontFamily: Fonts.black,
+                                  fontSize: 14,
+                                  color: "#D97706",
+                                }}
+                              >
+                                {currencySymbol}
+                                {(parseFloat(item.RewardCredit) || 0).toFixed(
+                                  2,
+                                )}{" "}
+                                Rewards
                               </Text>
                             )}
-                            <Text style={{ fontFamily: Fonts.medium, fontSize: 11, color: Theme.textSecondary, marginTop: 2 }}>
-                              Credit: {currencySymbol}{(parseFloat(item.AvailableCredit) || 0).toFixed(2)}
+                            <Text
+                              style={{
+                                fontFamily: Fonts.medium,
+                                fontSize: 11,
+                                color: Theme.textSecondary,
+                                marginTop: 2,
+                              }}
+                            >
+                              Credit: {currencySymbol}
+                              {(parseFloat(item.AvailableCredit) || 0).toFixed(
+                                2,
+                              )}
                             </Text>
                           </View>
                         </TouchableOpacity>
@@ -3276,15 +4028,21 @@ export default function SummaryScreen() {
                       alignItems: "center",
                       marginBottom: 15,
                       borderWidth: 1,
-                      borderColor: Theme.dangerBorder
+                      borderColor: Theme.dangerBorder,
                     }}
                     onPress={() => {
-                       setRewardMember(null);
-                       setVipOffer(null);
-                       setShowRewardModal(false);
+                      setRewardMember(null);
+                      setVipOffer(null);
+                      setShowRewardModal(false);
                     }}
                   >
-                    <Text style={{ fontFamily: Fonts.bold, color: Theme.danger, fontSize: 14 }}>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.bold,
+                        color: Theme.danger,
+                        fontSize: 14,
+                      }}
+                    >
                       Unlink Current Member ({rewardMember.Name})
                     </Text>
                   </TouchableOpacity>
@@ -3317,7 +4075,12 @@ export default function SummaryScreen() {
         <TouchableWithoutFeedback onPress={() => setShowBillOptions(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, { maxWidth: 350, maxHeight: "85%" }]}>
+              <View
+                style={[
+                  styles.modalContent,
+                  { maxWidth: 350, maxHeight: "85%" },
+                ]}
+              >
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Bill Options</Text>
                   <TouchableOpacity onPress={() => setShowBillOptions(false)}>
@@ -3333,7 +4096,10 @@ export default function SummaryScreen() {
                   Select an action for this bill
                 </Text>
 
-                <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                  style={{ maxHeight: 350 }}
+                  showsVerticalScrollIndicator={false}
+                >
                   <TouchableOpacity
                     style={styles.billOptionItem}
                     onPress={handleSplitBill}
@@ -3393,7 +4159,6 @@ export default function SummaryScreen() {
                     </View>
                     <Text style={styles.billOptionText}>FOC</Text>
                   </TouchableOpacity>
-
 
                   <TouchableOpacity
                     style={styles.billOptionItem}
@@ -3456,10 +4221,19 @@ export default function SummaryScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.billOptionText}>
-                        {scReduced ? "Restore Service Charge" : "Remove Service Charge"}
+                        {scReduced
+                          ? "Restore Service Charge"
+                          : "Remove Service Charge"}
                       </Text>
                       {scReduced && (
-                        <Text style={{ fontSize: 11, color: "#16a34a", marginTop: 2, fontFamily: Fonts.medium }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#16a34a",
+                            marginTop: 2,
+                            fontFamily: Fonts.medium,
+                          }}
+                        >
                           Service charge set to 0.00 (Tap to restore)
                         </Text>
                       )}
@@ -3474,7 +4248,11 @@ export default function SummaryScreen() {
                     <View
                       style={[
                         styles.billOptionIcon,
-                        { backgroundColor: takeawayChargeApplied ? "#f0fdf4" : "#fef9c3" },
+                        {
+                          backgroundColor: takeawayChargeApplied
+                            ? "#f0fdf4"
+                            : "#fef9c3",
+                        },
                       ]}
                     >
                       {isApplyingTakeaway ? (
@@ -3489,11 +4267,21 @@ export default function SummaryScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.billOptionText}>
-                        {takeawayChargeApplied ? "Remove Takeaway Charge" : "Add Takeaway Charge"}
+                        {takeawayChargeApplied
+                          ? "Remove Takeaway Charge"
+                          : "Add Takeaway Charge"}
                       </Text>
                       {takeawayChargeApplied && (
-                        <Text style={{ fontSize: 11, color: "#16a34a", marginTop: 2, fontFamily: Fonts.medium }}>
-                          Takeaway charge set to {currencySymbol}{takeawayChargeAmt.toFixed(2)}
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#16a34a",
+                            marginTop: 2,
+                            fontFamily: Fonts.medium,
+                          }}
+                        >
+                          Takeaway charge set to {currencySymbol}
+                          {takeawayChargeAmt.toFixed(2)}
                         </Text>
                       )}
                     </View>
@@ -3658,11 +4446,16 @@ export default function SummaryScreen() {
                           ]}
                         >
                           <View style={styles.splitItemInfo}>
-                            <Text style={styles.splitItemName}>{item.name}</Text>
+                            <Text style={styles.splitItemName}>
+                              {item.name}
+                            </Text>
                             <Text
                               style={[
                                 styles.splitItemPrice,
-                                { color: Theme.success, fontFamily: Fonts.bold },
+                                {
+                                  color: Theme.success,
+                                  fontFamily: Fonts.bold,
+                                },
                               ]}
                             >
                               {currencySymbol}
@@ -3720,7 +4513,11 @@ export default function SummaryScreen() {
                   >
                     <Text style={styles.sectionLabel}>Add Extra Items</Text>
                     <View style={[styles.searchWrap, { marginTop: 10 }]}>
-                      <Ionicons name="search" size={20} color={Theme.textMuted} />
+                      <Ionicons
+                        name="search"
+                        size={20}
+                        color={Theme.textMuted}
+                      />
                       <TextInput
                         style={styles.searchInput}
                         placeholder="Search dish to add..."
@@ -3794,7 +4591,15 @@ export default function SummaryScreen() {
                 <Text style={[styles.sectionLabel, { marginBottom: 15 }]}>
                   Select Number of Parts
                 </Text>
-                <View style={{ flexDirection: "row", gap: 10, justifyContent: "center", width: "100%", flexWrap: "wrap" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 10,
+                    justifyContent: "center",
+                    width: "100%",
+                    flexWrap: "wrap",
+                  }}
+                >
                   {[2, 3, 4, 5].map((num) => (
                     <TouchableOpacity
                       key={num}
@@ -3817,9 +4622,26 @@ export default function SummaryScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Text style={{ marginTop: 24, color: Theme.textSecondary, fontFamily: Fonts.bold, fontSize: 14, textAlign: "center", lineHeight: 22 }}>
-                  Total Bill: {currencySymbol}{grandTotal.toFixed(2)}{"\n"}
-                  Each Part: <Text style={{ color: Theme.primary, fontFamily: Fonts.black }}>{currencySymbol}{(grandTotal / partCount).toFixed(2)}</Text>
+                <Text
+                  style={{
+                    marginTop: 24,
+                    color: Theme.textSecondary,
+                    fontFamily: Fonts.bold,
+                    fontSize: 14,
+                    textAlign: "center",
+                    lineHeight: 22,
+                  }}
+                >
+                  Total Bill: {currencySymbol}
+                  {grandTotal.toFixed(2)}
+                  {"\n"}
+                  Each Part:{" "}
+                  <Text
+                    style={{ color: Theme.primary, fontFamily: Fonts.black }}
+                  >
+                    {currencySymbol}
+                    {(grandTotal / partCount).toFixed(2)}
+                  </Text>
                 </Text>
               </View>
             )}
@@ -3872,38 +4694,46 @@ export default function SummaryScreen() {
                   }
                   const canPay = permissions["OPRSET"]?.canAdd;
                   if (!canPay) {
-                    if (Platform.OS === 'web') {
+                    if (Platform.OS === "web") {
                       router.replace("/(tabs)/category");
                     } else {
                       Alert.alert(
                         "Access Denied",
                         "You are not authorized to process payments.",
-                        [{ text: "OK", onPress: () => router.replace("/(tabs)/category") }]
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => router.replace("/(tabs)/category"),
+                          },
+                        ],
                       );
                     }
                     return;
                   }
-                  const selectedItems = splitType === "items"
-                    ? [
-                        ...cart
-                          .map((item: any) => ({
-                            ...item,
-                            qty: splitQuantities[item.lineItemId] || 0,
-                          }))
-                          .filter((i: any) => i.qty > 0),
-                        ...extraSplitItems,
-                      ]
-                    : cart.map((item: any) => ({
-                        ...item,
-                        qty: item.qty / partCount,
-                      }));
+                  const selectedItems =
+                    splitType === "items"
+                      ? [
+                          ...cart
+                            .map((item: any) => ({
+                              ...item,
+                              qty: splitQuantities[item.lineItemId] || 0,
+                            }))
+                            .filter((i: any) => i.qty > 0),
+                          ...extraSplitItems,
+                        ]
+                      : cart.map((item: any) => ({
+                          ...item,
+                          qty: item.qty / partCount,
+                        }));
 
                   useCartStore.getState().setActiveSplitItems(selectedItems);
                   setShowSplitModal(false);
                   router.push({
                     pathname: "/payment",
                     params: {
-                      mobileNo: loyaltyPhone ? `${selectedCountry.code} ${loyaltyPhone.trim()}` : "",
+                      mobileNo: loyaltyPhone
+                        ? `${selectedCountry.code} ${loyaltyPhone.trim()}`
+                        : "",
                       customerName: loyaltyName || "",
                       vipOffer: vipOffer ? JSON.stringify(vipOffer) : "",
                     },
@@ -3921,7 +4751,12 @@ export default function SummaryScreen() {
       {/* VIP DYNAMIC OFFER MODAL */}
       <Modal transparent visible={showVipOfferModal} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: "80%", width: SCREEN_W > 800 ? 450 : "90%" }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { maxHeight: "80%", width: SCREEN_W > 800 ? 450 : "90%" },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>✨ Apply VIP Offer</Text>
               <TouchableOpacity onPress={() => setShowVipOfferModal(false)}>
@@ -3929,22 +4764,87 @@ export default function SummaryScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
               {/* TARGET TYPE TOGGLE */}
               <View style={{ marginBottom: 15 }}>
-                <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 6, textTransform: "uppercase" }}>Target Type</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: Fonts.bold,
+                    color: Theme.textSecondary,
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Target Type
+                </Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgInput }, offerTargetType === "DISH" && { backgroundColor: Theme.primary, borderColor: Theme.primary }]}
+                    style={[
+                      {
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 8,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: Theme.border,
+                        backgroundColor: Theme.bgInput,
+                      },
+                      offerTargetType === "DISH" && {
+                        backgroundColor: Theme.primary,
+                        borderColor: Theme.primary,
+                      },
+                    ]}
                     onPress={() => setOfferTargetType("DISH")}
                   >
-                    <Text style={[{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textSecondary }, offerTargetType === "DISH" && { color: "#fff" }]}>Specific Dish</Text>
+                    <Text
+                      style={[
+                        {
+                          fontSize: 13,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textSecondary,
+                        },
+                        offerTargetType === "DISH" && { color: "#fff" },
+                      ]}
+                    >
+                      Specific Dish
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgInput }, offerTargetType === "GROUP" && { backgroundColor: Theme.primary, borderColor: Theme.primary }]}
+                    style={[
+                      {
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 8,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: Theme.border,
+                        backgroundColor: Theme.bgInput,
+                      },
+                      offerTargetType === "GROUP" && {
+                        backgroundColor: Theme.primary,
+                        borderColor: Theme.primary,
+                      },
+                    ]}
                     onPress={() => setOfferTargetType("GROUP")}
                   >
-                    <Text style={[{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textSecondary }, offerTargetType === "GROUP" && { color: "#fff" }]}>Dish Group</Text>
+                    <Text
+                      style={[
+                        {
+                          fontSize: 13,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textSecondary,
+                        },
+                        offerTargetType === "GROUP" && { color: "#fff" },
+                      ]}
+                    >
+                      Dish Group
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -3952,38 +4852,142 @@ export default function SummaryScreen() {
               {/* TARGET SELECTION DROPDOWN */}
               {offerTargetType === "DISH" ? (
                 <View style={{ marginBottom: 15 }}>
-                  <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 6, textTransform: "uppercase" }}>Select Dish</Text>
-                  <View style={{ width: "100%", height: 42, backgroundColor: Theme.bgInput, borderWidth: 1, borderColor: Theme.border, borderRadius: 8, overflow: "hidden" }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: Fonts.bold,
+                      color: Theme.textSecondary,
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Select Dish
+                  </Text>
+                  <View
+                    style={{
+                      width: "100%",
+                      height: 42,
+                      backgroundColor: Theme.bgInput,
+                      borderWidth: 1,
+                      borderColor: Theme.border,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
                     <select
-                      style={{ width: "100%", height: "100%", backgroundColor: "#1E1B4B", color: "#FFFFFF", border: "none", paddingLeft: 10, paddingRight: 10, fontFamily: Fonts.bold, fontSize: 14, cursor: "pointer" } as any}
+                      style={
+                        {
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#1E1B4B",
+                          color: "#FFFFFF",
+                          border: "none",
+                          paddingLeft: 10,
+                          paddingRight: 10,
+                          fontFamily: Fonts.bold,
+                          fontSize: 14,
+                          cursor: "pointer",
+                        } as any
+                      }
                       value={selectedOfferDishId}
-                      onChange={(e: any) => setSelectedOfferDishId(e.target.value)}
+                      onChange={(e: any) =>
+                        setSelectedOfferDishId(e.target.value)
+                      }
                     >
-                      <option value="" style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}>-- Select Dish --</option>
+                      <option
+                        value=""
+                        style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}
+                      >
+                        -- Select Dish --
+                      </option>
                       {(() => {
-                        const cartDishIds = cart.map((item: any) => String(item.id || item.DishId).toLowerCase());
-                        const filteredDishes = allDishes.filter((dish: any) => cartDishIds.includes(String(dish.DishId).toLowerCase()));
-                        return [...filteredDishes].sort((a: any, b: any) => (a.Name || "").localeCompare(b.Name || "")).map((dish: any) => (
-                          <option key={dish.DishId} value={dish.DishId} style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}>
-                            {dish.Name} (${(dish.Price || 0).toFixed(2)})
-                          </option>
-                        ));
+                        const cartDishIds = cart.map((item: any) =>
+                          String(item.id || item.DishId).toLowerCase(),
+                        );
+                        const filteredDishes = allDishes.filter((dish: any) =>
+                          cartDishIds.includes(
+                            String(dish.DishId).toLowerCase(),
+                          ),
+                        );
+                        return [...filteredDishes]
+                          .sort((a: any, b: any) =>
+                            (a.Name || "").localeCompare(b.Name || ""),
+                          )
+                          .map((dish: any) => (
+                            <option
+                              key={dish.DishId}
+                              value={dish.DishId}
+                              style={{
+                                backgroundColor: "#1E1B4B",
+                                color: "#FFFFFF",
+                              }}
+                            >
+                              {dish.Name} (${(dish.Price || 0).toFixed(2)})
+                            </option>
+                          ));
                       })()}
                     </select>
                   </View>
                 </View>
               ) : (
                 <View style={{ marginBottom: 15 }}>
-                  <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 6, textTransform: "uppercase" }}>Select Dish Group</Text>
-                  <View style={{ width: "100%", height: 42, backgroundColor: Theme.bgInput, borderWidth: 1, borderColor: Theme.border, borderRadius: 8, overflow: "hidden" }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: Fonts.bold,
+                      color: Theme.textSecondary,
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Select Dish Group
+                  </Text>
+                  <View
+                    style={{
+                      width: "100%",
+                      height: 42,
+                      backgroundColor: Theme.bgInput,
+                      borderWidth: 1,
+                      borderColor: Theme.border,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
                     <select
-                      style={{ width: "100%", height: "100%", backgroundColor: "#1E1B4B", color: "#FFFFFF", border: "none", paddingLeft: 10, paddingRight: 10, fontFamily: Fonts.bold, fontSize: 14, cursor: "pointer" } as any}
+                      style={
+                        {
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#1E1B4B",
+                          color: "#FFFFFF",
+                          border: "none",
+                          paddingLeft: 10,
+                          paddingRight: 10,
+                          fontFamily: Fonts.bold,
+                          fontSize: 14,
+                          cursor: "pointer",
+                        } as any
+                      }
                       value={selectedOfferGroupId}
-                      onChange={(e: any) => setSelectedOfferGroupId(e.target.value)}
+                      onChange={(e: any) =>
+                        setSelectedOfferGroupId(e.target.value)
+                      }
                     >
-                      <option value="" style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}>-- Select Group --</option>
+                      <option
+                        value=""
+                        style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}
+                      >
+                        -- Select Group --
+                      </option>
                       {dishGroupsList.map((group: any) => (
-                        <option key={group.DishGroupId} value={group.DishGroupId} style={{ backgroundColor: "#1E1B4B", color: "#FFFFFF" }}>
+                        <option
+                          key={group.DishGroupId}
+                          value={group.DishGroupId}
+                          style={{
+                            backgroundColor: "#1E1B4B",
+                            color: "#FFFFFF",
+                          }}
+                        >
                           {group.DishGroupName}
                         </option>
                       ))}
@@ -3994,26 +4998,98 @@ export default function SummaryScreen() {
 
               {/* DISCOUNT TYPE TOGGLE */}
               <View style={{ marginBottom: 15 }}>
-                <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 6, textTransform: "uppercase" }}>Discount Type</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: Fonts.bold,
+                    color: Theme.textSecondary,
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Discount Type
+                </Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgInput }, offerDiscountType === "PERCENTAGE" && { backgroundColor: Theme.success, borderColor: Theme.success }]}
+                    style={[
+                      {
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 8,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: Theme.border,
+                        backgroundColor: Theme.bgInput,
+                      },
+                      offerDiscountType === "PERCENTAGE" && {
+                        backgroundColor: Theme.success,
+                        borderColor: Theme.success,
+                      },
+                    ]}
                     onPress={() => setOfferDiscountType("PERCENTAGE")}
                   >
-                    <Text style={[{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textSecondary }, offerDiscountType === "PERCENTAGE" && { color: "#fff" }]}>Percentage (%)</Text>
+                    <Text
+                      style={[
+                        {
+                          fontSize: 13,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textSecondary,
+                        },
+                        offerDiscountType === "PERCENTAGE" && { color: "#fff" },
+                      ]}
+                    >
+                      Percentage (%)
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgInput }, offerDiscountType === "FIXED" && { backgroundColor: Theme.success, borderColor: Theme.success }]}
+                    style={[
+                      {
+                        flex: 1,
+                        paddingVertical: 10,
+                        borderRadius: 8,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: Theme.border,
+                        backgroundColor: Theme.bgInput,
+                      },
+                      offerDiscountType === "FIXED" && {
+                        backgroundColor: Theme.success,
+                        borderColor: Theme.success,
+                      },
+                    ]}
                     onPress={() => setOfferDiscountType("FIXED")}
                   >
-                    <Text style={[{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textSecondary }, offerDiscountType === "FIXED" && { color: "#fff" }]}>Fixed Value ({currencySymbol})</Text>
+                    <Text
+                      style={[
+                        {
+                          fontSize: 13,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textSecondary,
+                        },
+                        offerDiscountType === "FIXED" && { color: "#fff" },
+                      ]}
+                    >
+                      Fixed Value ({currencySymbol})
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* VALUE INPUT & PRESETS */}
               <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 6, textTransform: "uppercase" }}>Discount Value</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: Fonts.bold,
+                    color: Theme.textSecondary,
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Discount Value
+                </Text>
                 <TextInput
                   style={{
                     backgroundColor: Theme.bgInput,
@@ -4024,7 +5100,7 @@ export default function SummaryScreen() {
                     fontSize: 16,
                     fontFamily: Fonts.bold,
                     color: Theme.textPrimary,
-                    marginBottom: 10
+                    marginBottom: 10,
                   }}
                   keyboardType="numeric"
                   placeholder="Enter discount value..."
@@ -4032,7 +5108,7 @@ export default function SummaryScreen() {
                   value={offerDiscountValue}
                   onChangeText={setOfferDiscountValue}
                 />
-                
+
                 {/* Preset Options */}
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   {[10, 20, 50, 100].map((preset) => (
@@ -4049,11 +5125,18 @@ export default function SummaryScreen() {
                         borderWidth: 1,
                         borderColor: Theme.border,
                         alignItems: "center",
-                        justifyContent: "center"
+                        justifyContent: "center",
                       }}
                     >
-                      <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textPrimary }}>
-                        {preset}{offerDiscountType === "PERCENTAGE" ? "%" : ""}
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: Fonts.bold,
+                          color: Theme.textPrimary,
+                        }}
+                      >
+                        {preset}
+                        {offerDiscountType === "PERCENTAGE" ? "%" : ""}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -4064,51 +5147,98 @@ export default function SummaryScreen() {
               <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
                 <TouchableOpacity
                   onPress={() => setShowVipOfferModal(false)}
-                  style={{ flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgInput, alignItems: "center", justifyContent: "center" }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: Theme.border,
+                    backgroundColor: Theme.bgInput,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  <Text style={{ fontSize: 14, fontFamily: Fonts.bold, color: Theme.textSecondary }}>Cancel</Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: Fonts.bold,
+                      color: Theme.textSecondary,
+                    }}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   onPress={() => {
                     const parsedVal = parseFloat(offerDiscountValue);
                     if (isNaN(parsedVal) || parsedVal <= 0) {
-                      if (Platform.OS === 'web') {
-                        alert("Please enter a valid discount value greater than 0.");
+                      if (Platform.OS === "web") {
+                        alert(
+                          "Please enter a valid discount value greater than 0.",
+                        );
                       } else {
-                        Alert.alert("Invalid Value", "Please enter a valid discount value greater than 0.");
+                        Alert.alert(
+                          "Invalid Value",
+                          "Please enter a valid discount value greater than 0.",
+                        );
                       }
                       return;
                     }
                     if (offerTargetType === "DISH" && !selectedOfferDishId) {
-                      if (Platform.OS === 'web') {
+                      if (Platform.OS === "web") {
                         alert("Please choose a target dish.");
                       } else {
-                        Alert.alert("Selection Required", "Please choose a target dish.");
+                        Alert.alert(
+                          "Selection Required",
+                          "Please choose a target dish.",
+                        );
                       }
                       return;
                     }
                     if (offerTargetType === "GROUP" && !selectedOfferGroupId) {
-                      if (Platform.OS === 'web') {
+                      if (Platform.OS === "web") {
                         alert("Please choose a target dish group.");
                       } else {
-                        Alert.alert("Selection Required", "Please choose a target dish group.");
+                        Alert.alert(
+                          "Selection Required",
+                          "Please choose a target dish group.",
+                        );
                       }
                       return;
                     }
 
                     setVipOffer({
                       targetType: offerTargetType,
-                      dishId: offerTargetType === "DISH" ? selectedOfferDishId : null,
-                      dishGroupId: offerTargetType === "GROUP" ? selectedOfferGroupId : null,
+                      dishId:
+                        offerTargetType === "DISH" ? selectedOfferDishId : null,
+                      dishGroupId:
+                        offerTargetType === "GROUP"
+                          ? selectedOfferGroupId
+                          : null,
                       discountType: offerDiscountType,
-                      discountValue: parsedVal
+                      discountValue: parsedVal,
                     });
                     setShowVipOfferModal(false);
                   }}
-                  style={{ flex: 2, paddingVertical: 12, borderRadius: 8, backgroundColor: Theme.primary, alignItems: "center", justifyContent: "center" }}
+                  style={{
+                    flex: 2,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    backgroundColor: Theme.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  <Text style={{ fontSize: 14, fontFamily: Fonts.black, color: "#fff" }}>Apply VIP Offer</Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: Fonts.black,
+                      color: "#fff",
+                    }}
+                  >
+                    Apply VIP Offer
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -4124,7 +5254,12 @@ export default function SummaryScreen() {
           >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Merge Bills</Text>
-              <TouchableOpacity onPress={() => { setShowMergeModal(false); setSelectedMergeOrderIds([]); }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowMergeModal(false);
+                  setSelectedMergeOrderIds([]);
+                }}
+              >
                 <Ionicons name="close" size={24} color={Theme.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -4136,11 +5271,17 @@ export default function SummaryScreen() {
             <FlatList
               style={{ flexShrink: 1, marginBottom: 15 }}
               data={activeOrders.filter(
-                (o: any) => 
-                  o.context?.orderType === "DINE_IN" && 
-                  o.context?.tableId && 
-                  String(o.context.tableId).replace(/^\{|\}$/g, "").trim().toLowerCase() !== 
-                  String(context?.tableId || "").replace(/^\{|\}$/g, "").trim().toLowerCase()
+                (o: any) =>
+                  o.context?.orderType === "DINE_IN" &&
+                  o.context?.tableId &&
+                  String(o.context.tableId)
+                    .replace(/^\{|\}$/g, "")
+                    .trim()
+                    .toLowerCase() !==
+                    String(context?.tableId || "")
+                      .replace(/^\{|\}$/g, "")
+                      .trim()
+                      .toLowerCase(),
               )}
               keyExtractor={(item) => item.orderId}
               renderItem={({ item }) => {
@@ -4161,7 +5302,11 @@ export default function SummaryScreen() {
                     <View
                       style={[
                         styles.mergeIcon,
-                        { backgroundColor: isSelected ? Theme.primary : Theme.primaryLight },
+                        {
+                          backgroundColor: isSelected
+                            ? Theme.primary
+                            : Theme.primaryLight,
+                        },
                       ]}
                     >
                       <Ionicons
@@ -4182,14 +5327,23 @@ export default function SummaryScreen() {
                           .map((i: any) => `${i.name} x${i.qty}`)
                           .join(", ") || "No items"}
                       </Text>
-                      <Text style={{ color: Theme.textMuted, fontSize: 11, fontFamily: Fonts.regular }}>
+                      <Text
+                        style={{
+                          color: Theme.textMuted,
+                          fontSize: 11,
+                          fontFamily: Fonts.regular,
+                        }}
+                      >
                         Order #{item.orderId}
                       </Text>
                     </View>
                     <Text style={styles.mergePrice}>
                       {currencySymbol}
                       {item.items
-                        .reduce((s: number, i: any) => s + (i.price || 0) * i.qty, 0)
+                        .reduce(
+                          (s: number, i: any) => s + (i.price || 0) * i.qty,
+                          0,
+                        )
                         .toFixed(2)}
                     </Text>
                   </TouchableOpacity>
@@ -4211,11 +5365,15 @@ export default function SummaryScreen() {
               <TouchableOpacity
                 style={[
                   styles.mergeActionBtn,
-                  selectedMergeOrderIds.length === 0 && styles.mergeActionBtnDisabled,
+                  selectedMergeOrderIds.length === 0 &&
+                    styles.mergeActionBtnDisabled,
                 ]}
                 onPress={() => {
                   if (selectedMergeOrderIds.length === 0) {
-                    showToast({ type: "error", message: "Please select at least one bill to merge" });
+                    showToast({
+                      type: "error",
+                      message: "Please select at least one bill to merge",
+                    });
                     return;
                   }
                   setConfirmMergeVisible(true);
@@ -4236,20 +5394,26 @@ export default function SummaryScreen() {
         transparent
         visible={confirmMergeVisible && selectedMergeOrderIds.length > 0}
         animationType="fade"
-        onRequestClose={() => { if (!isMerging) setConfirmMergeVisible(false); }}
+        onRequestClose={() => {
+          if (!isMerging) setConfirmMergeVisible(false);
+        }}
       >
         <View style={styles.mergeConfirmOverlay}>
           <View style={styles.mergeConfirmBox}>
             <View style={styles.mergeConfirmIconWrap}>
-              <Ionicons name="git-merge-outline" size={32} color={Theme.primary} />
+              <Ionicons
+                name="git-merge-outline"
+                size={32}
+                color={Theme.primary}
+              />
             </View>
             <Text style={styles.mergeConfirmTitle}>Confirm Merge</Text>
             <Text style={styles.mergeConfirmDesc}>
               Merge{" "}
               <Text style={{ color: Theme.primary, fontFamily: Fonts.black }}>
                 {selectedTablesText}
-              </Text>
-              {" "}order(s) into{" "}
+              </Text>{" "}
+              order(s) into{" "}
               <Text style={{ color: Theme.primary, fontFamily: Fonts.black }}>
                 Table {context?.tableNo || "current"}
               </Text>
@@ -4264,7 +5428,11 @@ export default function SummaryScreen() {
                 <Text style={styles.mergeConfirmBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.mergeConfirmBtn, styles.mergeConfirmBtnPrimary, isMerging && { opacity: 0.7 }]}
+                style={[
+                  styles.mergeConfirmBtn,
+                  styles.mergeConfirmBtnPrimary,
+                  isMerging && { opacity: 0.7 },
+                ]}
                 onPress={performMerge}
                 disabled={isMerging}
               >
@@ -4273,7 +5441,9 @@ export default function SummaryScreen() {
                 ) : (
                   <>
                     <Ionicons name="git-merge-outline" size={16} color="#fff" />
-                    <Text style={styles.mergeConfirmBtnPrimaryText}>Merge Now</Text>
+                    <Text style={styles.mergeConfirmBtnPrimaryText}>
+                      Merge Now
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -4290,53 +5460,234 @@ export default function SummaryScreen() {
         onRequestClose={() => setShowLoyaltyModal(false)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={[styles.modalOverlay, { justifyContent: "center", padding: 20 }]}>
+          <View
+            style={[
+              styles.modalOverlay,
+              { justifyContent: "center", padding: 20 },
+            ]}
+          >
             <TouchableWithoutFeedback>
-              <View style={{ backgroundColor: Theme.bgCard, borderRadius: 20, maxHeight: "90%", width: "100%", maxWidth: 460, alignSelf: "center", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 20 }}>
+              <View
+                style={{
+                  backgroundColor: Theme.bgCard,
+                  borderRadius: 20,
+                  maxHeight: "90%",
+                  width: "100%",
+                  maxWidth: 460,
+                  alignSelf: "center",
+                  overflow: "hidden",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 20,
+                  elevation: 20,
+                }}
+              >
                 {/* Modal Header */}
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, borderBottomWidth: 1, borderBottomColor: Theme.border, backgroundColor: Theme.bgNav }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: Theme.successBg || "#dcfce7", justifyContent: "center", alignItems: "center" }}>
-                      <Ionicons name="ribbon-outline" size={22} color={Theme.success || "#16a34a"} />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: 20,
+                    borderBottomWidth: 1,
+                    borderBottomColor: Theme.border,
+                    backgroundColor: Theme.bgNav,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: Theme.successBg || "#dcfce7",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name="ribbon-outline"
+                        size={22}
+                        color={Theme.success || "#16a34a"}
+                      />
                     </View>
                     <View>
-                      <Text style={{ fontFamily: Fonts.black, fontSize: 16, color: Theme.textPrimary }}>Walk-in Loyalty</Text>
-                      <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: Theme.textSecondary }}>Search & manage loyalty customers</Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.black,
+                          fontSize: 16,
+                          color: Theme.textPrimary,
+                        }}
+                      >
+                        Walk-in Loyalty
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.regular,
+                          fontSize: 11,
+                          color: Theme.textSecondary,
+                        }}
+                      >
+                        Search & manage loyalty customers
+                      </Text>
                     </View>
                   </View>
                   <TouchableOpacity
                     onPress={() => setShowLoyaltyModal(false)}
-                    style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: Theme.bgMuted, justifyContent: "center", alignItems: "center" }}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: Theme.bgMuted,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
                   >
-                    <Ionicons name="close" size={18} color={Theme.textPrimary} />
+                    <Ionicons
+                      name="close"
+                      size={18}
+                      color={Theme.textPrimary}
+                    />
                   </TouchableOpacity>
                 </View>
 
                 {/* Scrollable Content Area */}
-                <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}>
+                <ScrollView
+                  style={{ flexShrink: 1 }}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  contentContainerStyle={{
+                    paddingHorizontal: 20,
+                    paddingTop: 20,
+                    paddingBottom: 20,
+                  }}
+                >
                   {loyaltyCustomer && !loyaltyCustomer.isNew ? (
                     /* SELECTED CUSTOMER DASHBOARD */
                     <View>
-                      <View style={{ alignItems: "center", paddingVertical: 15 }}>
-                        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: Theme.primaryLight, justifyContent: "center", alignItems: "center", marginBottom: 10, borderWidth: 2, borderColor: Theme.primaryBorder }}>
-                          <Text style={{ fontFamily: Fonts.black, fontSize: 26, color: Theme.primary }}>{getInitials(loyaltyCustomer.Name)}</Text>
+                      <View
+                        style={{ alignItems: "center", paddingVertical: 15 }}
+                      >
+                        <View
+                          style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 36,
+                            backgroundColor: Theme.primaryLight,
+                            justifyContent: "center",
+                            alignItems: "center",
+                            marginBottom: 10,
+                            borderWidth: 2,
+                            borderColor: Theme.primaryBorder,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: Fonts.black,
+                              fontSize: 26,
+                              color: Theme.primary,
+                            }}
+                          >
+                            {getInitials(loyaltyCustomer.Name)}
+                          </Text>
                         </View>
-                        <Text style={{ fontFamily: Fonts.black, fontSize: 20, color: Theme.textPrimary }}>{loyaltyCustomer.Name || "Guest"}</Text>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-                          <Ionicons name="call-outline" size={12} color={Theme.textSecondary} />
-                          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Theme.textSecondary }}>{loyaltyCustomer.Phone}</Text>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.black,
+                            fontSize: 20,
+                            color: Theme.textPrimary,
+                          }}
+                        >
+                          {loyaltyCustomer.Name || "Guest"}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                            marginTop: 4,
+                          }}
+                        >
+                          <Ionicons
+                            name="call-outline"
+                            size={12}
+                            color={Theme.textSecondary}
+                          />
+                          <Text
+                            style={{
+                              fontFamily: Fonts.medium,
+                              fontSize: 13,
+                              color: Theme.textSecondary,
+                            }}
+                          >
+                            {loyaltyCustomer.Phone}
+                          </Text>
                         </View>
                       </View>
 
                       {/* 9-visit visual progress tracker */}
-                      <View style={{ marginBottom: 16, padding: 16, backgroundColor: Theme.bgNav, borderRadius: 14, borderWidth: 1, borderColor: Theme.border }}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                          <Text style={{ fontFamily: Fonts.bold, fontSize: 13, color: Theme.textSecondary }}>Visit Progress</Text>
-                          <View style={{ backgroundColor: Theme.primaryLight, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, borderWidth: 1, borderColor: Theme.primaryBorder }}>
-                            <Text style={{ fontFamily: Fonts.black, fontSize: 13, color: Theme.primary }}>{loyaltyCustomer.VisitCount} (Lifetime: {loyaltyCustomer.TotalVisits || 0})</Text>
+                      <View
+                        style={{
+                          marginBottom: 16,
+                          padding: 16,
+                          backgroundColor: Theme.bgNav,
+                          borderRadius: 14,
+                          borderWidth: 1,
+                          borderColor: Theme.border,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 12,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: Fonts.bold,
+                              fontSize: 13,
+                              color: Theme.textSecondary,
+                            }}
+                          >
+                            Visit Progress
+                          </Text>
+                          <View
+                            style={{
+                              backgroundColor: Theme.primaryLight,
+                              paddingHorizontal: 10,
+                              paddingVertical: 3,
+                              borderRadius: 20,
+                              borderWidth: 1,
+                              borderColor: Theme.primaryBorder,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontFamily: Fonts.black,
+                                fontSize: 13,
+                                color: Theme.primary,
+                              }}
+                            >
+                              {loyaltyCustomer.VisitCount} (Lifetime:{" "}
+                              {loyaltyCustomer.TotalVisits || 0})
+                            </Text>
                           </View>
                         </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
                           {Array.from({ length: 9 }).map((_, i) => {
                             const isCompleted = i < loyaltyCustomer.VisitCount;
                             return (
@@ -4346,17 +5697,33 @@ export default function SummaryScreen() {
                                   width: 28,
                                   height: 28,
                                   borderRadius: 14,
-                                  backgroundColor: isCompleted ? (Theme.success || "#16a34a") : Theme.bgMuted,
+                                  backgroundColor: isCompleted
+                                    ? Theme.success || "#16a34a"
+                                    : Theme.bgMuted,
                                   justifyContent: "center",
                                   alignItems: "center",
                                   borderWidth: 1,
-                                  borderColor: isCompleted ? (Theme.success || "#16a34a") : Theme.border,
+                                  borderColor: isCompleted
+                                    ? Theme.success || "#16a34a"
+                                    : Theme.border,
                                 }}
                               >
                                 {isCompleted ? (
-                                  <Ionicons name="checkmark" size={14} color="#fff" />
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={14}
+                                    color="#fff"
+                                  />
                                 ) : (
-                                  <Text style={{ fontSize: 10, fontFamily: Fonts.bold, color: Theme.textMuted }}>{i + 1}</Text>
+                                  <Text
+                                    style={{
+                                      fontSize: 10,
+                                      fontFamily: Fonts.bold,
+                                      color: Theme.textMuted,
+                                    }}
+                                  >
+                                    {i + 1}
+                                  </Text>
                                 )}
                               </View>
                             );
@@ -4366,20 +5733,87 @@ export default function SummaryScreen() {
 
                       {/* Reward Status Banner */}
                       <View style={{ marginBottom: 10 }}>
-                        {loyaltyCustomer.RewardPending === 1 || loyaltyCustomer.VisitCount === 9 ? (
-                          <View style={{ backgroundColor: Theme.successBg || '#dcfce7', padding: 16, borderRadius: 14, borderWidth: 1, borderColor: Theme.successBorder || '#bbf7d0', flexDirection: "row", alignItems: "center", gap: 12 }}>
-                            <Ionicons name="gift-outline" size={28} color={Theme.success || "#16a34a"} />
+                        {loyaltyCustomer.RewardPending === 1 ||
+                        loyaltyCustomer.VisitCount === 9 ? (
+                          <View
+                            style={{
+                              backgroundColor: Theme.successBg || "#dcfce7",
+                              padding: 16,
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: Theme.successBorder || "#bbf7d0",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
+                          >
+                            <Ionicons
+                              name="gift-outline"
+                              size={28}
+                              color={Theme.success || "#16a34a"}
+                            />
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 15, fontFamily: Fonts.black, color: Theme.success || '#16a34a' }}>🎉 Reward Available!</Text>
-                              <Text style={{ fontSize: 12, fontFamily: Fonts.medium, color: Theme.success || '#16a34a', marginTop: 2 }}>Customer is eligible for a free food reward!</Text>
+                              <Text
+                                style={{
+                                  fontSize: 15,
+                                  fontFamily: Fonts.black,
+                                  color: Theme.success || "#16a34a",
+                                }}
+                              >
+                                🎉 Reward Available!
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: Fonts.medium,
+                                  color: Theme.success || "#16a34a",
+                                  marginTop: 2,
+                                }}
+                              >
+                                Customer is eligible for a free food reward!
+                              </Text>
                             </View>
                           </View>
                         ) : (
-                          <View style={{ backgroundColor: Theme.bgNav, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: Theme.border, flexDirection: "row", alignItems: "center", gap: 12 }}>
-                            <Ionicons name="time-outline" size={28} color={Theme.primary} />
+                          <View
+                            style={{
+                              backgroundColor: Theme.bgNav,
+                              padding: 16,
+                              borderRadius: 14,
+                              borderWidth: 1,
+                              borderColor: Theme.border,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
+                          >
+                            <Ionicons
+                              name="time-outline"
+                              size={28}
+                              color={Theme.primary}
+                            />
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 15, fontFamily: Fonts.black, color: Theme.textPrimary }}>Next Reward in {9 - loyaltyCustomer.VisitCount} Visits</Text>
-                              <Text style={{ fontSize: 12, fontFamily: Fonts.medium, color: Theme.textSecondary, marginTop: 2 }}>{9 - loyaltyCustomer.VisitCount} more visits to complete reward cycle.</Text>
+                              <Text
+                                style={{
+                                  fontSize: 15,
+                                  fontFamily: Fonts.black,
+                                  color: Theme.textPrimary,
+                                }}
+                              >
+                                Next Reward in {9 - loyaltyCustomer.VisitCount}{" "}
+                                Visits
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: Fonts.medium,
+                                  color: Theme.textSecondary,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {9 - loyaltyCustomer.VisitCount} more visits to
+                                complete reward cycle.
+                              </Text>
                             </View>
                           </View>
                         )}
@@ -4388,23 +5822,79 @@ export default function SummaryScreen() {
                   ) : (
                     /* SEARCH & REGISTER FLOW */
                     <View>
-                      <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Theme.textSecondary, marginBottom: 16 }}>
-                        Search and select customers, check visit counts, and redeem rewards.
+                      <Text
+                        style={{
+                          fontFamily: Fonts.medium,
+                          fontSize: 13,
+                          color: Theme.textSecondary,
+                          marginBottom: 16,
+                        }}
+                      >
+                        Search and select customers, check visit counts, and
+                        redeem rewards.
                       </Text>
 
                       {/* Tab selectors */}
-                      <View style={{ flexDirection: "row", backgroundColor: Theme.bgMuted, borderRadius: 14, padding: 4, marginBottom: 18 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          backgroundColor: Theme.bgMuted,
+                          borderRadius: 14,
+                          padding: 4,
+                          marginBottom: 18,
+                        }}
+                      >
                         <TouchableOpacity
-                          style={{ flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 11, backgroundColor: activeLoyaltyTab === "search" ? Theme.bgCard : "transparent" }}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            alignItems: "center",
+                            borderRadius: 11,
+                            backgroundColor:
+                              activeLoyaltyTab === "search"
+                                ? Theme.bgCard
+                                : "transparent",
+                          }}
                           onPress={() => setActiveLoyaltyTab("search")}
                         >
-                          <Text style={{ fontFamily: Fonts.bold, fontSize: 13, color: activeLoyaltyTab === "search" ? Theme.primary : Theme.textSecondary }}>Select Customer</Text>
+                          <Text
+                            style={{
+                              fontFamily: Fonts.bold,
+                              fontSize: 13,
+                              color:
+                                activeLoyaltyTab === "search"
+                                  ? Theme.primary
+                                  : Theme.textSecondary,
+                            }}
+                          >
+                            Select Customer
+                          </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={{ flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 11, backgroundColor: activeLoyaltyTab === "register" ? Theme.bgCard : "transparent" }}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            alignItems: "center",
+                            borderRadius: 11,
+                            backgroundColor:
+                              activeLoyaltyTab === "register"
+                                ? Theme.bgCard
+                                : "transparent",
+                          }}
                           onPress={() => setActiveLoyaltyTab("register")}
                         >
-                          <Text style={{ fontFamily: Fonts.bold, fontSize: 13, color: activeLoyaltyTab === "register" ? Theme.primary : Theme.textSecondary }}>New Registration</Text>
+                          <Text
+                            style={{
+                              fontFamily: Fonts.bold,
+                              fontSize: 13,
+                              color:
+                                activeLoyaltyTab === "register"
+                                  ? Theme.primary
+                                  : Theme.textSecondary,
+                            }}
+                          >
+                            New Registration
+                          </Text>
                         </TouchableOpacity>
                       </View>
 
@@ -4412,10 +5902,36 @@ export default function SummaryScreen() {
                         /* SELECT CUSTOMER TAB */
                         <View>
                           {/* Unified Search Input */}
-                          <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: Theme.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: Theme.bgCard, gap: 8, marginBottom: 14 }}>
-                            <Ionicons name="search-outline" size={18} color={Theme.textSecondary} />
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              borderWidth: 1,
+                              borderColor: Theme.border,
+                              borderRadius: 12,
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              backgroundColor: Theme.bgCard,
+                              gap: 8,
+                              marginBottom: 14,
+                            }}
+                          >
+                            <Ionicons
+                              name="search-outline"
+                              size={18}
+                              color={Theme.textSecondary}
+                            />
                             <TextInput
-                              style={{ flex: 1, fontSize: 14, fontFamily: Fonts.regular, color: Theme.textPrimary, paddingVertical: 2, ...Platform.select({ web: { outlineStyle: "none" } as any }) }}
+                              style={{
+                                flex: 1,
+                                fontSize: 14,
+                                fontFamily: Fonts.regular,
+                                color: Theme.textPrimary,
+                                paddingVertical: 2,
+                                ...Platform.select({
+                                  web: { outlineStyle: "none" } as any,
+                                }),
+                              }}
                               placeholder="Search by Name or Mobile..."
                               placeholderTextColor={Theme.textMuted}
                               value={loyaltySearchText}
@@ -4424,19 +5940,51 @@ export default function SummaryScreen() {
                               autoCapitalize="none"
                             />
                             {loyaltySearchText.length > 0 && (
-                              <TouchableOpacity onPress={() => handleSearchTextChange("")}>
-                                <Ionicons name="close-circle" size={18} color={Theme.textSecondary} />
+                              <TouchableOpacity
+                                onPress={() => handleSearchTextChange("")}
+                              >
+                                <Ionicons
+                                  name="close-circle"
+                                  size={18}
+                                  color={Theme.textSecondary}
+                                />
                               </TouchableOpacity>
                             )}
                           </View>
 
                           {/* Members List */}
-                          <Text style={{ fontSize: 11, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                            {loyaltySearchText.trim() === "" ? "All Loyalty Members" : "Search Results"}
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontFamily: Fonts.bold,
+                              color: Theme.textSecondary,
+                              marginBottom: 8,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            {loyaltySearchText.trim() === ""
+                              ? "All Loyalty Members"
+                              : "Search Results"}
                           </Text>
-                          <View style={{ borderWidth: 1, borderColor: Theme.border, borderRadius: 14, overflow: "hidden", backgroundColor: Theme.bgCard, marginBottom: 16 }}>
-                            {(loyaltySearchText.trim() === "" ? defaultLoyaltyMembers : searchResults).map((cust, index) => {
-                              const list = loyaltySearchText.trim() === "" ? defaultLoyaltyMembers : searchResults;
+                          <View
+                            style={{
+                              borderWidth: 1,
+                              borderColor: Theme.border,
+                              borderRadius: 14,
+                              overflow: "hidden",
+                              backgroundColor: Theme.bgCard,
+                              marginBottom: 16,
+                            }}
+                          >
+                            {(loyaltySearchText.trim() === ""
+                              ? defaultLoyaltyMembers
+                              : searchResults
+                            ).map((cust, index) => {
+                              const list =
+                                loyaltySearchText.trim() === ""
+                                  ? defaultLoyaltyMembers
+                                  : searchResults;
                               return (
                                 <TouchableOpacity
                                   key={index}
@@ -4444,7 +5992,8 @@ export default function SummaryScreen() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     padding: 14,
-                                    borderBottomWidth: index === list.length - 1 ? 0 : 1,
+                                    borderBottomWidth:
+                                      index === list.length - 1 ? 0 : 1,
                                     borderBottomColor: Theme.border,
                                     gap: 12,
                                   }}
@@ -4453,80 +6002,286 @@ export default function SummaryScreen() {
                                     setLoyaltySearchText("");
                                   }}
                                 >
-                                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: Theme.primaryLight, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: Theme.primaryBorder }}>
-                                    <Text style={{ fontFamily: Fonts.black, fontSize: 14, color: Theme.primary }}>{getInitials(cust.Name)}</Text>
+                                  <View
+                                    style={{
+                                      width: 42,
+                                      height: 42,
+                                      borderRadius: 21,
+                                      backgroundColor: Theme.primaryLight,
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                      borderWidth: 1,
+                                      borderColor: Theme.primaryBorder,
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        fontFamily: Fonts.black,
+                                        fontSize: 14,
+                                        color: Theme.primary,
+                                      }}
+                                    >
+                                      {getInitials(cust.Name)}
+                                    </Text>
                                   </View>
                                   <View style={{ flex: 1 }}>
-                                    <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: Theme.textPrimary }}>{cust.Name || "Guest"}</Text>
-                                    <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: Theme.textSecondary, marginTop: 2 }}>{cust.Phone}</Text>
+                                    <Text
+                                      style={{
+                                        fontFamily: Fonts.bold,
+                                        fontSize: 14,
+                                        color: Theme.textPrimary,
+                                      }}
+                                    >
+                                      {cust.Name || "Guest"}
+                                    </Text>
+                                    <Text
+                                      style={{
+                                        fontFamily: Fonts.medium,
+                                        fontSize: 12,
+                                        color: Theme.textSecondary,
+                                        marginTop: 2,
+                                      }}
+                                    >
+                                      {cust.Phone}
+                                    </Text>
                                   </View>
-                                  <View style={{ alignItems: "flex-end", gap: 4 }}>
-                                    <View style={{ backgroundColor: cust.VisitCount >= 9 ? (Theme.successBg || "#dcfce7") : Theme.bgNav, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: cust.VisitCount >= 9 ? (Theme.successBorder || "#bbf7d0") : Theme.border }}>
-                                      <Text style={{ fontFamily: Fonts.bold, fontSize: 11, color: cust.VisitCount >= 9 ? (Theme.success || "#16a34a") : Theme.primary }}>{cust.VisitCount || 0} visits (Lifetime: {cust.TotalVisits || 0})</Text>
+                                  <View
+                                    style={{ alignItems: "flex-end", gap: 4 }}
+                                  >
+                                    <View
+                                      style={{
+                                        backgroundColor:
+                                          cust.VisitCount >= 9
+                                            ? Theme.successBg || "#dcfce7"
+                                            : Theme.bgNav,
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                        borderRadius: 8,
+                                        borderWidth: 1,
+                                        borderColor:
+                                          cust.VisitCount >= 9
+                                            ? Theme.successBorder || "#bbf7d0"
+                                            : Theme.border,
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          fontFamily: Fonts.bold,
+                                          fontSize: 11,
+                                          color:
+                                            cust.VisitCount >= 9
+                                              ? Theme.success || "#16a34a"
+                                              : Theme.primary,
+                                        }}
+                                      >
+                                        {cust.VisitCount || 0} visits (Lifetime:{" "}
+                                        {cust.TotalVisits || 0})
+                                      </Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={14} color={Theme.textSecondary} />
+                                    <Ionicons
+                                      name="chevron-forward"
+                                      size={14}
+                                      color={Theme.textSecondary}
+                                    />
                                   </View>
                                 </TouchableOpacity>
                               );
                             })}
-                            {(loyaltySearchText.trim() !== "" && searchResults.length === 0) && (
-                              <View style={{ padding: 24, alignItems: "center" }}>
-                                <Ionicons name="search-outline" size={28} color={Theme.textMuted} />
-                                <Text style={{ color: Theme.textMuted, fontFamily: Fonts.medium, marginTop: 8 }}>No matching members found</Text>
-                              </View>
-                            )}
-                            {(loyaltySearchText.trim() === "" && defaultLoyaltyMembers.length === 0) && (
-                              <View style={{ padding: 24, alignItems: "center" }}>
-                                <Ionicons name="people-outline" size={28} color={Theme.textMuted} />
-                                <Text style={{ color: Theme.textMuted, fontFamily: Fonts.medium, marginTop: 8 }}>No loyalty members yet</Text>
-                                <Text style={{ color: Theme.textMuted, fontFamily: Fonts.regular, fontSize: 12, marginTop: 4 }}>Register customers using the New Registration tab</Text>
-                              </View>
-                            )}
+                            {loyaltySearchText.trim() !== "" &&
+                              searchResults.length === 0 && (
+                                <View
+                                  style={{ padding: 24, alignItems: "center" }}
+                                >
+                                  <Ionicons
+                                    name="search-outline"
+                                    size={28}
+                                    color={Theme.textMuted}
+                                  />
+                                  <Text
+                                    style={{
+                                      color: Theme.textMuted,
+                                      fontFamily: Fonts.medium,
+                                      marginTop: 8,
+                                    }}
+                                  >
+                                    No matching members found
+                                  </Text>
+                                </View>
+                              )}
+                            {loyaltySearchText.trim() === "" &&
+                              defaultLoyaltyMembers.length === 0 && (
+                                <View
+                                  style={{ padding: 24, alignItems: "center" }}
+                                >
+                                  <Ionicons
+                                    name="people-outline"
+                                    size={28}
+                                    color={Theme.textMuted}
+                                  />
+                                  <Text
+                                    style={{
+                                      color: Theme.textMuted,
+                                      fontFamily: Fonts.medium,
+                                      marginTop: 8,
+                                    }}
+                                  >
+                                    No loyalty members yet
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: Theme.textMuted,
+                                      fontFamily: Fonts.regular,
+                                      fontSize: 12,
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    Register customers using the New
+                                    Registration tab
+                                  </Text>
+                                </View>
+                              )}
                           </View>
                         </View>
                       ) : (
                         /* REGISTER NEW TAB */
                         <View>
-                          <View style={{ gap: 14, padding: 16, borderWidth: 1, borderColor: Theme.border, borderRadius: 14, backgroundColor: Theme.bgNav, marginBottom: 12 }}>
+                          <View
+                            style={{
+                              gap: 14,
+                              padding: 16,
+                              borderWidth: 1,
+                              borderColor: Theme.border,
+                              borderRadius: 14,
+                              backgroundColor: Theme.bgNav,
+                              marginBottom: 12,
+                            }}
+                          >
                             <View>
-                              <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 8 }}>Mobile Number *</Text>
-                              <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: Fonts.bold,
+                                  color: Theme.textSecondary,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                Mobile Number *
+                              </Text>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  gap: 8,
+                                  alignItems: "center",
+                                }}
+                              >
                                 <TouchableOpacity
-                                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Theme.border, borderRadius: 10, paddingHorizontal: 10, height: 44, backgroundColor: Theme.bgCard, gap: 4 }}
+                                  style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderWidth: 1,
+                                    borderColor: Theme.border,
+                                    borderRadius: 10,
+                                    paddingHorizontal: 10,
+                                    height: 44,
+                                    backgroundColor: Theme.bgCard,
+                                    gap: 4,
+                                  }}
                                   onPress={() => setShowCountryPicker(true)}
                                 >
-                                  <Text style={{ fontSize: 13, fontFamily: Fonts.bold, color: Theme.textPrimary }}>{selectedCountry.code}</Text>
-                                  <Ionicons name="chevron-down" size={12} color={Theme.textSecondary} />
+                                  <Text
+                                    style={{
+                                      fontSize: 13,
+                                      fontFamily: Fonts.bold,
+                                      color: Theme.textPrimary,
+                                    }}
+                                  >
+                                    {selectedCountry.code}
+                                  </Text>
+                                  <Ionicons
+                                    name="chevron-down"
+                                    size={12}
+                                    color={Theme.textSecondary}
+                                  />
                                 </TouchableOpacity>
                                 <TextInput
-                                  style={{ flex: 1, height: 44, borderWidth: 1, borderColor: Theme.border, borderRadius: 10, paddingHorizontal: 12, backgroundColor: Theme.bgCard, fontSize: 14, fontFamily: Fonts.regular, color: Theme.textPrimary }}
+                                  style={{
+                                    flex: 1,
+                                    height: 44,
+                                    borderWidth: 1,
+                                    borderColor: Theme.border,
+                                    borderRadius: 10,
+                                    paddingHorizontal: 12,
+                                    backgroundColor: Theme.bgCard,
+                                    fontSize: 14,
+                                    fontFamily: Fonts.regular,
+                                    color: Theme.textPrimary,
+                                  }}
                                   placeholder="Phone number..."
                                   placeholderTextColor={Theme.textMuted}
                                   keyboardType="phone-pad"
                                   value={loyaltyPhone}
                                   onChangeText={(txt) => {
                                     setLoyaltyPhone(txt);
-                                    if (loyaltyCustomer) setLoyaltyCustomer(null);
+                                    if (loyaltyCustomer)
+                                      setLoyaltyCustomer(null);
                                   }}
                                 />
                                 <TouchableOpacity
-                                  style={{ height: 44, paddingHorizontal: 16, backgroundColor: Theme.primary, borderRadius: 10, justifyContent: "center", alignItems: "center" }}
+                                  style={{
+                                    height: 44,
+                                    paddingHorizontal: 16,
+                                    backgroundColor: Theme.primary,
+                                    borderRadius: 10,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                  }}
                                   onPress={() => handleLoyaltyLookup()}
                                   disabled={isSearchingLoyalty}
                                 >
                                   {isSearchingLoyalty ? (
-                                    <ActivityIndicator size="small" color="#fff" />
+                                    <ActivityIndicator
+                                      size="small"
+                                      color="#fff"
+                                    />
                                   ) : (
-                                    <Text style={{ color: "#fff", fontFamily: Fonts.bold, fontSize: 13 }}>Lookup</Text>
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontFamily: Fonts.bold,
+                                        fontSize: 13,
+                                      }}
+                                    >
+                                      Lookup
+                                    </Text>
                                   )}
                                 </TouchableOpacity>
                               </View>
                             </View>
 
                             <View>
-                              <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary, marginBottom: 8 }}>Customer Name (Optional)</Text>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: Fonts.bold,
+                                  color: Theme.textSecondary,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                Customer Name (Optional)
+                              </Text>
                               <TextInput
-                                style={{ height: 44, borderWidth: 1, borderColor: Theme.border, borderRadius: 10, paddingHorizontal: 12, backgroundColor: Theme.bgCard, fontSize: 14, fontFamily: Fonts.regular, color: Theme.textPrimary }}
+                                style={{
+                                  height: 44,
+                                  borderWidth: 1,
+                                  borderColor: Theme.border,
+                                  borderRadius: 10,
+                                  paddingHorizontal: 12,
+                                  backgroundColor: Theme.bgCard,
+                                  fontSize: 14,
+                                  fontFamily: Fonts.regular,
+                                  color: Theme.textPrimary,
+                                }}
                                 placeholder="Enter customer name..."
                                 placeholderTextColor={Theme.textMuted}
                                 value={loyaltyName}
@@ -4536,9 +6291,32 @@ export default function SummaryScreen() {
                           </View>
 
                           {loyaltyCustomer && loyaltyCustomer.isNew && (
-                            <View style={{ padding: 14, backgroundColor: Theme.successBg || '#dcfce7', borderRadius: 12, borderWidth: 1, borderColor: Theme.successBorder || '#bbf7d0', flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                              <Ionicons name="checkmark-circle" size={20} color={Theme.success || "#16a34a"} />
-                              <Text style={{ flex: 1, fontSize: 13, fontFamily: Fonts.bold, color: Theme.success || '#16a34a' }}>
+                            <View
+                              style={{
+                                padding: 14,
+                                backgroundColor: Theme.successBg || "#dcfce7",
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: Theme.successBorder || "#bbf7d0",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 10,
+                                marginBottom: 12,
+                              }}
+                            >
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={Theme.success || "#16a34a"}
+                              />
+                              <Text
+                                style={{
+                                  flex: 1,
+                                  fontSize: 13,
+                                  fontFamily: Fonts.bold,
+                                  color: Theme.success || "#16a34a",
+                                }}
+                              >
                                 Customer will be enrolled upon checkout!
                               </Text>
                             </View>
@@ -4550,53 +6328,149 @@ export default function SummaryScreen() {
                 </ScrollView>
 
                 {/* Sticky Action Footer */}
-                <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: Theme.border, backgroundColor: Theme.bgCard }}>
+                <View
+                  style={{
+                    padding: 20,
+                    borderTopWidth: 1,
+                    borderTopColor: Theme.border,
+                    backgroundColor: Theme.bgCard,
+                  }}
+                >
                   {loyaltyCustomer && !loyaltyCustomer.isNew ? (
                     <View style={{ flexDirection: "row", gap: 12 }}>
                       <TouchableOpacity
-                        style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: Theme.dangerBg || '#fee2e2', borderWidth: 1, borderColor: Theme.dangerBorder || '#fecaca', justifyContent: "center", alignItems: "center" }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: Theme.dangerBg || "#fee2e2",
+                          borderWidth: 1,
+                          borderColor: Theme.dangerBorder || "#fecaca",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
                         onPress={() => {
                           setLoyaltyCustomer(null);
                           setLoyaltyPhone("");
                           setLoyaltyName("");
                         }}
                       >
-                        <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: Theme.danger || '#ef4444' }}>Change Customer</Text>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.bold,
+                            fontSize: 14,
+                            color: Theme.danger || "#ef4444",
+                          }}
+                        >
+                          Change Customer
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={{ flex: 1, height: 48, borderRadius: 12, backgroundColor: Theme.primary, justifyContent: "center", alignItems: "center" }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: Theme.primary,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
                         onPress={() => setShowLoyaltyModal(false)}
                       >
-                        <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: "#fff" }}>Done</Text>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.bold,
+                            fontSize: 14,
+                            color: "#fff",
+                          }}
+                        >
+                          Done
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   ) : activeLoyaltyTab === "search" ? (
                     <TouchableOpacity
-                      style={{ height: 48, borderRadius: 12, backgroundColor: Theme.bgMuted, borderWidth: 1, borderColor: Theme.border, justifyContent: "center", alignItems: "center" }}
+                      style={{
+                        height: 48,
+                        borderRadius: 12,
+                        backgroundColor: Theme.bgMuted,
+                        borderWidth: 1,
+                        borderColor: Theme.border,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                       onPress={() => setShowLoyaltyModal(false)}
                     >
-                      <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: Theme.textSecondary }}>Close</Text>
+                      <Text
+                        style={{
+                          fontFamily: Fonts.bold,
+                          fontSize: 14,
+                          color: Theme.textSecondary,
+                        }}
+                      >
+                        Close
+                      </Text>
                     </TouchableOpacity>
                   ) : (
                     <View style={{ flexDirection: "row", gap: 10 }}>
                       <TouchableOpacity
-                        style={{ flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: Theme.border, backgroundColor: Theme.bgMuted, justifyContent: "center", alignItems: "center" }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: Theme.border,
+                          backgroundColor: Theme.bgMuted,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
                         onPress={() => setShowLoyaltyModal(false)}
                       >
-                        <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: Theme.textSecondary }}>Close</Text>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.bold,
+                            fontSize: 14,
+                            color: Theme.textSecondary,
+                          }}
+                        >
+                          Close
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={{ flex: 2, flexDirection: "row", height: 48, borderRadius: 12, backgroundColor: isRegisteringLoyalty ? Theme.bgMuted : (Theme.success || "#16a34a"), justifyContent: "center", alignItems: "center", gap: 8, opacity: isRegisteringLoyalty ? 0.7 : 1 }}
+                        style={{
+                          flex: 2,
+                          flexDirection: "row",
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: isRegisteringLoyalty
+                            ? Theme.bgMuted
+                            : Theme.success || "#16a34a",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 8,
+                          opacity: isRegisteringLoyalty ? 0.7 : 1,
+                        }}
                         onPress={handleLoyaltyRegister}
                         disabled={isRegisteringLoyalty}
                       >
                         {isRegisteringLoyalty ? (
                           <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                          <Ionicons name="person-add-outline" size={18} color="#fff" />
+                          <Ionicons
+                            name="person-add-outline"
+                            size={18}
+                            color="#fff"
+                          />
                         )}
-                        <Text style={{ fontFamily: Fonts.black, fontSize: 14, color: "#fff" }}>
-                          {isRegisteringLoyalty ? "Registering..." : "Add Customer"}
+                        <Text
+                          style={{
+                            fontFamily: Fonts.black,
+                            fontSize: 14,
+                            color: "#fff",
+                          }}
+                        >
+                          {isRegisteringLoyalty
+                            ? "Registering..."
+                            : "Add Customer"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -4613,7 +6487,11 @@ export default function SummaryScreen() {
         <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { maxWidth: 300, padding: 15 }]}>
-              <Text style={[styles.modalTitle, { fontSize: 16, marginBottom: 15 }]}>Select Country</Text>
+              <Text
+                style={[styles.modalTitle, { fontSize: 16, marginBottom: 15 }]}
+              >
+                Select Country
+              </Text>
               {COUNTRIES.map((country) => (
                 <TouchableOpacity
                   key={country.code}
@@ -4623,8 +6501,11 @@ export default function SummaryScreen() {
                     paddingVertical: 12,
                     paddingHorizontal: 8,
                     borderRadius: 8,
-                    backgroundColor: selectedCountry.code === country.code ? Theme.bgNav : "transparent",
-                    gap: 12
+                    backgroundColor:
+                      selectedCountry.code === country.code
+                        ? Theme.bgNav
+                        : "transparent",
+                    gap: 12,
                   }}
                   onPress={() => {
                     setSelectedCountry(country);
@@ -4636,8 +6517,25 @@ export default function SummaryScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 20 }}>{country.flag}</Text>
-                  <Text style={{ fontSize: 14, fontFamily: Fonts.bold, color: Theme.textPrimary }}>{country.code}</Text>
-                  <Text style={{ fontSize: 13, fontFamily: Fonts.regular, color: Theme.textSecondary, flex: 1 }}>{country.name}</Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: Fonts.bold,
+                      color: Theme.textPrimary,
+                    }}
+                  >
+                    {country.code}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontFamily: Fonts.regular,
+                      color: Theme.textSecondary,
+                      flex: 1,
+                    }}
+                  >
+                    {country.name}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -4957,9 +6855,9 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 8,
   },
   secondaryActionText: {

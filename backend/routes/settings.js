@@ -234,6 +234,18 @@ router.get("/kitchen-printers", async (req, res) => {
   try {
     const pool = await poolPromise;
 
+    // Self-heal: insert missing active categories into CategoryKitchenType so they get mapped to a unique KitchenTypeCode
+    await pool.query(`
+      INSERT INTO CategoryKitchenType (CategoryId, KitchenTypeCode, KitchenTypeName)
+      SELECT 
+        cm.CategoryId, 
+        CAST((SELECT ISNULL(MAX(CAST(KitchenTypeCode AS INT)), 0) FROM CategoryKitchenType) + ROW_NUMBER() OVER(ORDER BY cm.CategoryId) AS VARCHAR(50)) AS KitchenTypeCode,
+        cm.CategoryName AS KitchenTypeName
+      FROM CategoryMaster cm
+      LEFT JOIN CategoryKitchenType ckt ON cm.CategoryId = ckt.CategoryId
+      WHERE cm.IsActive = 1 AND ckt.CategoryId IS NULL AND cm.CategoryName NOT LIKE '%TEST%'
+    `).catch(err => console.warn("Failed self-healing CategoryKitchenType mapping:", err.message));
+
     // 1. Self-healing check for Cashier Printer (PrinterType = 1)
     const cashierCheck = await pool.request()
       .query("SELECT COUNT(*) as count FROM PrintMaster WHERE PrinterType = 1 AND IsActive = 1");

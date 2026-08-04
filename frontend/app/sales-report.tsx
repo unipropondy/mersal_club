@@ -614,8 +614,12 @@ export default function SalesReport() {
   };
 
   const fetchReportData = async () => {
-    const endObj = new Date();
-    const startObj = new Date();
+    const parts = selectedDate.split("-");
+    const year = Number(parts[0]);
+    const month = Number(parts[1]) - 1;
+    const day = Number(parts[2]);
+    const endObj = new Date(year, month, day);
+    const startObj = new Date(year, month, day);
 
     if (downloadFilter === "WEEKLY") {
       startObj.setDate(startObj.getDate() - 6);

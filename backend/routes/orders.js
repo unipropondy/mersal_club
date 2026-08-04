@@ -328,10 +328,18 @@ async function syncToProfessionalTables(
     let initialTakeawayCharge = 0;
     if (isTakeaway) {
       try {
-        const settingsRes = await transaction.request().query("SELECT TOP 1 ISNULL(TakeawayCharges, 0) AS TakeawayCharges FROM CompanySettings WHERE Id = '1'");
-        initialTakeawayCharge = parseFloat(settingsRes.recordset[0]?.TakeawayCharges) || 0;
+        const settingsRes = await transaction
+          .request()
+          .query(
+            "SELECT TOP 1 ISNULL(TakeawayCharges, 0) AS TakeawayCharges FROM CompanySettings WHERE Id = '1'",
+          );
+        initialTakeawayCharge =
+          parseFloat(settingsRes.recordset[0]?.TakeawayCharges) || 0;
       } catch (settingsErr) {
-        console.warn("⚠️ [orders.js] Failed to fetch TakeawayCharges from settings:", settingsErr.message);
+        console.warn(
+          "⚠️ [orders.js] Failed to fetch TakeawayCharges from settings:",
+          settingsErr.message,
+        );
       }
     }
 
@@ -414,38 +422,49 @@ async function syncToProfessionalTables(
     const isCombo = item.isCombo === true || String(item.isCombo) === "1";
     let comboDetailsJSON = null;
     let resolvedUnitPrice = unitPrice;
-    if (isCombo && Array.isArray(item.comboSelections) && item.comboSelections.length > 0) {
+    if (
+      isCombo &&
+      Array.isArray(item.comboSelections) &&
+      item.comboSelections.length > 0
+    ) {
       // Prefer the basePrice sent by the frontend; fall back to item.price.
       // item.basePrice is the original combo dish cost BEFORE options are added.
       // Using it prevents surcharges from stacking on repeated DB syncs.
       const basePrice = parseFloat(item.basePrice || unitPrice);
 
       let totalSurcharge = 0;
-      item.comboSelections.forEach(group => {
+      item.comboSelections.forEach((group) => {
         if (Array.isArray(group.items)) {
-          group.items.forEach(opt => {
-            totalSurcharge += parseFloat(opt.surcharge || 0) + parseFloat(opt.dishPrice || 0);
+          group.items.forEach((opt) => {
+            totalSurcharge +=
+              parseFloat(opt.surcharge || 0) + parseFloat(opt.dishPrice || 0);
           });
         }
       });
       resolvedUnitPrice = basePrice + totalSurcharge;
 
       // Wrap selections with the basePrice so we can recover it from the DB
-      comboDetailsJSON = JSON.stringify({ basePrice, groups: item.comboSelections });
+      comboDetailsJSON = JSON.stringify({
+        basePrice,
+        groups: item.comboSelections,
+      });
     } else if (isCombo) {
       // Combo with no selections saved yet — check if ComboDetailsJSON is already stored
       try {
         const existing = item.ComboDetailsJSON || item.comboDetailsJSON;
         if (existing) {
-          const parsed = typeof existing === "string" ? JSON.parse(existing) : existing;
+          const parsed =
+            typeof existing === "string" ? JSON.parse(existing) : existing;
           const bp = parsed.basePrice;
           if (bp !== undefined) {
             const groups = parsed.groups || [];
             let totalSurcharge = 0;
-            groups.forEach(group => {
+            groups.forEach((group) => {
               if (Array.isArray(group.items)) {
-                group.items.forEach(opt => {
-                  totalSurcharge += parseFloat(opt.surcharge || 0) + parseFloat(opt.dishPrice || 0);
+                group.items.forEach((opt) => {
+                  totalSurcharge +=
+                    parseFloat(opt.surcharge || 0) +
+                    parseFloat(opt.dishPrice || 0);
                 });
               }
             });
@@ -453,7 +472,9 @@ async function syncToProfessionalTables(
             comboDetailsJSON = existing; // preserve as-is
           }
         }
-      } catch (_) { /* leave as unitPrice */ }
+      } catch (_) {
+        /* leave as unitPrice */
+      }
     }
 
     const p_id = `id${idx}`,
@@ -509,11 +530,10 @@ async function syncToProfessionalTables(
       String(item.IsTakeAway).toLowerCase() === "true";
 
     const isSC =
-      !isTWItem && (
-        item.isServiceCharge === true ||
+      !isTWItem &&
+      (item.isServiceCharge === true ||
         String(item.isServiceCharge) === "1" ||
-        String(item.isServiceCharge).toLowerCase() === "true"
-      );
+        String(item.isServiceCharge).toLowerCase() === "true");
     let itemSC = null;
     if (isSC) {
       const qtyVal = Number(item.qty || 1);
@@ -521,7 +541,9 @@ async function syncToProfessionalTables(
       const discVal = Number(item.discount || 0);
       let itemDiscount = 0;
       if (discVal > 0) {
-        const discountBasis = isCombo ? Number(item.basePrice || priceVal) : priceVal;
+        const discountBasis = isCombo
+          ? Number(item.basePrice || priceVal)
+          : priceVal;
         if (resolvedDiscountType === "percentage") {
           itemDiscount = discountBasis * qtyVal * (discVal / 100);
         } else {
@@ -643,11 +665,19 @@ async function syncToProfessionalTables(
 
 async function syncTableStatus(req, tableId) {
   if (!tableId || tableId === "undefined" || tableId === "null") return null;
-  const cleanId = String(tableId).replace(/^\{|\}$/g, "").trim().toLowerCase();
-  
-  const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  const cleanId = String(tableId)
+    .replace(/^\{|\}$/g, "")
+    .trim()
+    .toLowerCase();
+
+  const isValidUUID =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      cleanId,
+    );
   if (!isValidUUID) {
-    console.log(`[syncTableStatus] Skipping sync for non-UUID tableId: ${cleanId}`);
+    console.log(
+      `[syncTableStatus] Skipping sync for non-UUID tableId: ${cleanId}`,
+    );
     return null;
   }
 
@@ -826,14 +856,21 @@ router.post("/save-cart", async (req, res) => {
       entryStatus,
     } = req.body;
     const pool = await poolPromise;
-    
+
     // Day Start / Day End validation check
-    const activeDayRes = await pool.request().query("SELECT TOP 1 StartDate FROM DateEntry ORDER BY CreatedDate DESC");
+    const activeDayRes = await pool
+      .request()
+      .query("SELECT TOP 1 StartDate FROM DateEntry ORDER BY CreatedDate DESC");
     if (activeDayRes.recordset.length === 0) {
-      return res.status(400).json({ error: "No active business date. Please Start Day first." });
+      return res
+        .status(400)
+        .json({ error: "No active business date. Please Start Day first." });
     }
     const activeStartDate = activeDayRes.recordset[0].StartDate;
-    const formattedStartDate = activeStartDate instanceof Date ? activeStartDate.toISOString().split("T")[0] : activeStartDate;
+    const formattedStartDate =
+      activeStartDate instanceof Date
+        ? activeStartDate.toISOString().split("T")[0]
+        : activeStartDate;
 
     const cleanId = String(tableId)
       .replace(/^\{|\}$/g, "")
@@ -1285,9 +1322,14 @@ router.post("/cancel", async (req, res) => {
     );
     const voidQty = items.reduce((sum, item) => sum + (item.Quantity || 0), 0);
 
-    const activeDayRes = await pool.request().query("SELECT TOP 1 StartDate FROM DateEntry ORDER BY CreatedDate DESC");
+    const activeDayRes = await pool
+      .request()
+      .query("SELECT TOP 1 StartDate FROM DateEntry ORDER BY CreatedDate DESC");
     const activeStartDate = activeDayRes.recordset[0]?.StartDate;
-    const formattedStartDate = activeStartDate instanceof Date ? activeStartDate.toISOString().split("T")[0] : activeStartDate;
+    const formattedStartDate =
+      activeStartDate instanceof Date
+        ? activeStartDate.toISOString().split("T")[0]
+        : activeStartDate;
 
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
@@ -1313,8 +1355,7 @@ router.post("/cancel", async (req, res) => {
         .input("voidQty", sql.Int, voidQty)
         .input("voidAmt", sql.Money, subTotal)
         .input("mobile", sql.NVarChar(50), header.MobileNo)
-        .input("startDate", sql.Date, formattedStartDate || null)
-        .query(`
+        .input("startDate", sql.Date, formattedStartDate || null).query(`
           INSERT INTO SettlementHeader (
             SettlementID, LastSettlementDate, BillNo, OrderType, TableNo, Section, 
             CashierID, BusinessUnitId, SysAmount, ManualAmount, CreatedBy, CreatedOn, 
@@ -1341,8 +1382,7 @@ router.post("/cancel", async (req, res) => {
           .input("catId", sql.UniqueIdentifier, item.CategoryId)
           .input("catName", sql.NVarChar(255), item.CategoryName)
           .input("groupName", sql.NVarChar(255), item.DishGroupName)
-          .input("startDate", sql.Date, formattedStartDate || null)
-          .query(`
+          .input("startDate", sql.Date, formattedStartDate || null).query(`
             INSERT INTO SettlementItemDetail (
               SettlementID, DishId, DishName,SongName, Qty, Price, Status, OrderDateTime,
               CategoryId, CategoryName, SubCategoryName, start_date
@@ -1430,7 +1470,9 @@ router.post("/complete", async (req, res) => {
     const { tableId, userId } = req.body;
     const cleanId = toGuidOrNull(tableId);
     if (!cleanId) {
-      console.log(`[Complete] Skipping table release for non-table order: ${tableId}`);
+      console.log(
+        `[Complete] Skipping table release for non-table order: ${tableId}`,
+      );
       return res.json({ success: true });
     }
     const pool = await poolPromise;
@@ -1469,7 +1511,9 @@ router.post("/hold", async (req, res) => {
     const { tableId } = req.body;
     const cleanId = toGuidOrNull(tableId);
     if (!cleanId) {
-      console.log(`[Hold] Skipping table updates for non-table order: ${tableId}`);
+      console.log(
+        `[Hold] Skipping table updates for non-table order: ${tableId}`,
+      );
       return res.json({ success: true });
     }
     const pool = await poolPromise;
@@ -1498,15 +1542,22 @@ router.post("/checkout", async (req, res) => {
     const { tableId } = req.body;
     const cleanId = toGuidOrNull(tableId);
     if (!cleanId) {
-      console.log(`[Checkout] Skipping table updates for non-table order: ${tableId}`);
-      return res.json({ success: true, tableNo: "TAKEAWAY", section: "TAKEAWAY" });
+      console.log(
+        `[Checkout] Skipping table updates for non-table order: ${tableId}`,
+      );
+      return res.json({
+        success: true,
+        tableNo: "TAKEAWAY",
+        section: "TAKEAWAY",
+      });
     }
     const pool = await poolPromise;
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
     try {
       // Step 1: Move table to Payment Pending (Status 2) and mark items as SERVED (4)
-      await transaction.request().input("tid", sql.UniqueIdentifier, cleanId).query(`
+      await transaction.request().input("tid", sql.UniqueIdentifier, cleanId)
+        .query(`
           -- Reduce deadlock victim priority: prefer to lose vs more critical write transactions
           SET DEADLOCK_PRIORITY LOW;
 
@@ -1537,7 +1588,9 @@ router.post("/checkout", async (req, res) => {
 
       await transaction.commit();
     } catch (txErr) {
-      try { await transaction.rollback(); } catch (_) {}
+      try {
+        await transaction.rollback();
+      } catch (_) {}
       throw txErr;
     }
 
@@ -1547,15 +1600,8 @@ router.post("/checkout", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       const lid = cleanId.toLowerCase();
-      io.emit("order_closed", {
+      io.emit("cart_updated", {
         tableId: lid,
-        tableNo: updated?.tableNo,
-        section: updated?.section,
-      });
-      io.emit("order_status_update", {
-        tableId: lid,
-        action: "CLOSE",
-        orderId: updated?.CurrentOrderId,
       });
     }
 
@@ -1570,11 +1616,15 @@ router.post("/checkout", async (req, res) => {
       }
       return;
     } catch (err) {
-      const isDeadlock = err.number === 1205 || (err.message && err.message.includes("deadlock"));
+      const isDeadlock =
+        err.number === 1205 ||
+        (err.message && err.message.includes("deadlock"));
       if (isDeadlock && attempt < MAX_DEADLOCK_RETRIES) {
         const delay = DEADLOCK_RETRY_DELAY_MS * attempt;
-        console.warn(`⚠️ [Checkout] Deadlock detected (attempt ${attempt}/${MAX_DEADLOCK_RETRIES}). Retrying in ${delay}ms...`);
-        await new Promise(r => setTimeout(r, delay));
+        console.warn(
+          `⚠️ [Checkout] Deadlock detected (attempt ${attempt}/${MAX_DEADLOCK_RETRIES}). Retrying in ${delay}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       console.error(`❌ Checkout Error (attempt ${attempt}):`, err.message);
@@ -1855,7 +1905,9 @@ router.get("/active-kitchen", async (req, res) => {
         ...row,
         status: statusMap[row.StatusCode],
         modifiers: row.ModifiersJSON ? JSON.parse(row.ModifiersJSON) : [],
-        comboSelections: row.ComboDetailsJSON ? JSON.parse(row.ComboDetailsJSON) : [],
+        comboSelections: row.ComboDetailsJSON
+          ? JSON.parse(row.ComboDetailsJSON)
+          : [],
       });
     });
     res.json({ serverTime: Date.now(), orders: Object.values(orders) });
@@ -1871,9 +1923,12 @@ router.post("/log-print", async (req, res) => {
 
     let safeOrderId = toGuidOrNull(orderId);
     if (!safeOrderId && orderNumber) {
-      const orderQuery = await pool.request()
+      const orderQuery = await pool
+        .request()
         .input("orderNumber", sql.VarChar(50), String(orderNumber).trim())
-        .query("SELECT TOP 1 OrderId FROM RestaurantOrderCur WHERE OrderNumber = @orderNumber ORDER BY CreatedOn DESC");
+        .query(
+          "SELECT TOP 1 OrderId FROM RestaurantOrderCur WHERE OrderNumber = @orderNumber ORDER BY CreatedOn DESC",
+        );
       if (orderQuery.recordset.length > 0) {
         safeOrderId = orderQuery.recordset[0].OrderId;
       }
@@ -2249,8 +2304,7 @@ router.post("/reduce-service-charge", async (req, res) => {
     await pool
       .request()
       .input("orderNo", sql.NVarChar(50), String(orderId).trim())
-      .input("override", sql.Bit, overrideValue)
-      .query(`
+      .input("override", sql.Bit, overrideValue).query(`
         UPDATE RestaurantOrderCur
         SET ServiceChargeOverride = @override, ModifiedOn = GETDATE()
         WHERE OrderNumber = @orderNo
@@ -2258,9 +2312,9 @@ router.post("/reduce-service-charge", async (req, res) => {
       `);
 
     // Sync status to update related tables and broadcast total change
-    const orderRes = await pool.request()
-      .input("orderNo", sql.VarChar(50), String(orderId).trim())
-      .query(`
+    const orderRes = await pool
+      .request()
+      .input("orderNo", sql.VarChar(50), String(orderId).trim()).query(`
         SELECT TOP 1 tm.TableId 
         FROM RestaurantOrderCur h
         LEFT JOIN TableMaster tm ON RTRIM(LTRIM(h.Tableno)) = RTRIM(LTRIM(tm.TableNumber))
@@ -2268,7 +2322,9 @@ router.post("/reduce-service-charge", async (req, res) => {
       `);
     const tableId = orderRes.recordset[0]?.TableId;
     if (tableId) {
-      const cleanTid = String(tableId).replace(/^\{|\}$/g, "").trim();
+      const cleanTid = String(tableId)
+        .replace(/^\{|\}$/g, "")
+        .trim();
       await syncTableStatus(req, cleanTid);
       req.app.get("io")?.emit("cart_updated", {
         tableId: cleanTid.toLowerCase(),
@@ -2301,15 +2357,16 @@ router.get("/:orderId/sc-override", async (req, res) => {
 
     const result = await pool
       .request()
-      .input("orderNo", sql.NVarChar(50), String(orderId).trim())
-      .query(`
+      .input("orderNo", sql.NVarChar(50), String(orderId).trim()).query(`
         SELECT TOP 1 ISNULL(ServiceChargeOverride, 0) AS ServiceChargeOverride
         FROM RestaurantOrderCur
         WHERE OrderNumber = @orderNo
           AND (isOrderClosed = 0 OR isOrderClosed IS NULL)
       `);
 
-    const reduced = result.recordset[0]?.ServiceChargeOverride === true || result.recordset[0]?.ServiceChargeOverride === 1;
+    const reduced =
+      result.recordset[0]?.ServiceChargeOverride === true ||
+      result.recordset[0]?.ServiceChargeOverride === 1;
     res.json({ serviceChargeReduced: reduced });
   } catch (err) {
     console.error("❌ sc-override GET Error:", err.message);
@@ -2354,7 +2411,11 @@ router.post("/apply-takeaway-charge", async (req, res) => {
     let chargeValue = 0;
     if (apply) {
       // Get TakeawayCharges from CompanySettings
-      const settingsRes = await pool.request().query("SELECT TOP 1 ISNULL(TakeawayCharges, 0) AS TakeawayCharges FROM CompanySettings WHERE Id = '1'");
+      const settingsRes = await pool
+        .request()
+        .query(
+          "SELECT TOP 1 ISNULL(TakeawayCharges, 0) AS TakeawayCharges FROM CompanySettings WHERE Id = '1'",
+        );
       chargeValue = parseFloat(settingsRes.recordset[0]?.TakeawayCharges) || 0;
     }
 
@@ -2364,8 +2425,7 @@ router.post("/apply-takeaway-charge", async (req, res) => {
       .request()
       .input("orderNo", sql.NVarChar(50), String(orderId).trim())
       .input("charge", sql.Decimal(18, 2), chargeValue)
-      .input("override", sql.Bit, overrideValue)
-      .query(`
+      .input("override", sql.Bit, overrideValue).query(`
         UPDATE RestaurantOrderCur
         SET TakeawayCharge = @charge, TakeawayChargeOverride = @override, ModifiedOn = GETDATE()
         WHERE OrderNumber = @orderNo
@@ -2373,9 +2433,9 @@ router.post("/apply-takeaway-charge", async (req, res) => {
       `);
 
     // Sync status to update related tables and broadcast total change
-    const orderRes = await pool.request()
-      .input("orderNo", sql.VarChar(50), String(orderId).trim())
-      .query(`
+    const orderRes = await pool
+      .request()
+      .input("orderNo", sql.VarChar(50), String(orderId).trim()).query(`
         SELECT TOP 1 tm.TableId 
         FROM RestaurantOrderCur h
         LEFT JOIN TableMaster tm ON RTRIM(LTRIM(h.Tableno)) = RTRIM(LTRIM(tm.TableNumber))
@@ -2383,7 +2443,9 @@ router.post("/apply-takeaway-charge", async (req, res) => {
       `);
     const tableId = orderRes.recordset[0]?.TableId;
     if (tableId) {
-      const cleanTid = String(tableId).replace(/^\{|\}$/g, "").trim();
+      const cleanTid = String(tableId)
+        .replace(/^\{|\}$/g, "")
+        .trim();
       await syncTableStatus(req, cleanTid);
       req.app.get("io")?.emit("cart_updated", {
         tableId: cleanTid.toLowerCase(),
@@ -2391,7 +2453,11 @@ router.post("/apply-takeaway-charge", async (req, res) => {
       });
     }
 
-    res.json({ success: true, takeawayCharge: chargeValue, takeawayChargeOverride: overrideValue });
+    res.json({
+      success: true,
+      takeawayCharge: chargeValue,
+      takeawayChargeOverride: overrideValue,
+    });
   } catch (err) {
     console.error("❌ apply-takeaway-charge Error:", err.message);
     res.status(500).json({ error: err.message });
@@ -2416,8 +2482,7 @@ router.get("/:orderId/takeaway-charge", async (req, res) => {
 
     const result = await pool
       .request()
-      .input("orderNo", sql.NVarChar(50), String(orderId).trim())
-      .query(`
+      .input("orderNo", sql.NVarChar(50), String(orderId).trim()).query(`
         SELECT TOP 1 ISNULL(TakeawayCharge, 0) AS TakeawayCharge, ISNULL(TakeawayChargeOverride, 0) AS TakeawayChargeOverride
         FROM RestaurantOrderCur
         WHERE OrderNumber = @orderNo
@@ -2425,7 +2490,11 @@ router.get("/:orderId/takeaway-charge", async (req, res) => {
       `);
 
     const takeawayCharge = parseFloat(result.recordset[0]?.TakeawayCharge) || 0;
-    const takeawayChargeOverride = result.recordset[0]?.TakeawayChargeOverride === true || result.recordset[0]?.TakeawayChargeOverride === 1 ? 1 : 0;
+    const takeawayChargeOverride =
+      result.recordset[0]?.TakeawayChargeOverride === true ||
+      result.recordset[0]?.TakeawayChargeOverride === 1
+        ? 1
+        : 0;
     res.json({ takeawayCharge, takeawayChargeOverride });
   } catch (err) {
     console.error("❌ takeaway-charge GET Error:", err.message);

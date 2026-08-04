@@ -1036,9 +1036,12 @@ export default function PaymentScreen() {
           mUpper.includes("PHONE") ||
           mUpper.includes("PAYTM");
         const isPayNow =
-          mUpper.includes("PAYNOW") ||
+          (mUpper.includes("PAYNOW") ||
           mUpper.includes("QR") ||
-          mUpper.includes("PAY-NOW");
+          mUpper.includes("PAY-NOW")) &&
+          m.yeahPayEnabled !== true &&
+          String(m.yeahPayEnabled) !== "true" &&
+          String(m.yeahPayEnabled) !== "1";
         if (isUPI && !hasUPI) return false;
         if (isPayNow && !hasPayNow) return false;
         return true;

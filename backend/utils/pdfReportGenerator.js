@@ -228,6 +228,7 @@ const generateSalesReportPdf = async (reportData) => {
     voidAmount            = 0,
     cancelledCount        = 0,
     cancelledAmount       = 0,
+    totalVIPDiscount      = 0,
     paymentBreakdown      = {},
     paymentCounts         = {},
     reconciliation        = {},
