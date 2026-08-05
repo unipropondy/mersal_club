@@ -520,18 +520,14 @@ router.get("/receivables/dashboard", async (req, res) => {
       FROM CustomerCreditTransactions tx
       WHERE tx.TransactionType IN ('CREDIT_SALE', 'SALE', 'ADJUSTMENT') 
         AND tx.Status IN ('OPEN', 'PARTIAL')
-        AND (
-          EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
-          OR EXISTS (SELECT 1 FROM MemberMaster mm WHERE tx.MemberId = mm.MemberId AND mm.IsActive = 1)
-        )
+        AND EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
     `);
     
     // Total Customers with Credit
     const custCountRes = await pool.request().query(`
-      SELECT 
-        (SELECT COUNT(*) FROM CreditCustomerMaster WHERE CurrentBalance > 0.01 AND IsActive = 1) +
-        (SELECT COUNT(*) FROM MemberMaster WHERE CurrentBalance > 0.01 AND IsActive = 1)
-        AS CreditCustomerCount
+      SELECT COUNT(*) AS CreditCustomerCount 
+      FROM CreditCustomerMaster 
+      WHERE CurrentBalance > 0.01 AND IsActive = 1
     `);
     
     // Collections Today & This Month
@@ -541,10 +537,7 @@ router.get("/receivables/dashboard", async (req, res) => {
         ISNULL(SUM(CASE WHEN tx.CreatedDate >= DATEADD(month, DATEDIFF(month, 0, GETDATE()), 0) THEN tx.PaidAmount ELSE 0 END), 0) AS CollectionsThisMonth
       FROM CustomerCreditTransactions tx
       WHERE tx.TransactionType = 'PAYMENT'
-        AND (
-          EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
-          OR EXISTS (SELECT 1 FROM MemberMaster mm WHERE tx.MemberId = mm.MemberId AND mm.IsActive = 1)
-        )
+        AND EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
     `);
 
     // Total Credit sales and Total payments collected
@@ -553,10 +546,7 @@ router.get("/receivables/dashboard", async (req, res) => {
         ISNULL(SUM(CASE WHEN tx.TransactionType IN ('CREDIT_SALE', 'SALE', 'ADJUSTMENT') THEN tx.BillAmount ELSE 0 END), 0) AS TotalCredit,
         ISNULL(SUM(CASE WHEN tx.TransactionType = 'PAYMENT' THEN tx.PaidAmount ELSE 0 END), 0) AS TotalPaid
       FROM CustomerCreditTransactions tx
-      WHERE (
-        EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
-        OR EXISTS (SELECT 1 FROM MemberMaster mm WHERE tx.MemberId = mm.MemberId AND mm.IsActive = 1)
-      )
+      WHERE EXISTS (SELECT 1 FROM CreditCustomerMaster m WHERE tx.MemberId = m.CustomerId AND m.IsActive = 1)
     `);
     
     res.json({

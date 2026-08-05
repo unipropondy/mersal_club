@@ -1095,7 +1095,23 @@ export default function ReceivablesScreen() {
                         </Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.customerName}>{item.Name}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                          <Text style={styles.customerName}>{item.Name}</Text>
+                          <View style={{
+                            backgroundColor: item.CustomerType === "MEMBER" ? Theme.primary + "15" : Theme.success + "15",
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 4,
+                            borderWidth: 1,
+                            borderColor: item.CustomerType === "MEMBER" ? Theme.primary + "40" : Theme.success + "40",
+                          }}>
+                            <Text style={{
+                              color: item.CustomerType === "MEMBER" ? Theme.primary : Theme.success,
+                              fontSize: 9,
+                              fontFamily: Fonts.black,
+                            }}>{item.CustomerType === "MEMBER" ? "MEMBER" : "CREDIT"}</Text>
+                          </View>
+                        </View>
                         <Text style={styles.customerPhone}>{item.Phone}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
@@ -1266,7 +1282,23 @@ export default function ReceivablesScreen() {
                       }}
                     >
                       <View>
-                        <Text style={styles.customerName}>{item.Name}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                          <Text style={styles.customerName}>{item.Name}</Text>
+                          <View style={{
+                            backgroundColor: item.CustomerType === "MEMBER" ? Theme.primary + "15" : Theme.success + "15",
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 4,
+                            borderWidth: 1,
+                            borderColor: item.CustomerType === "MEMBER" ? Theme.primary + "40" : Theme.success + "40",
+                          }}>
+                            <Text style={{
+                              color: item.CustomerType === "MEMBER" ? Theme.primary : Theme.success,
+                              fontSize: 9,
+                              fontFamily: Fonts.black,
+                            }}>{item.CustomerType === "MEMBER" ? "MEMBER" : "CREDIT"}</Text>
+                          </View>
+                        </View>
                         <Text style={styles.customerPhone}>{item.Phone}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
