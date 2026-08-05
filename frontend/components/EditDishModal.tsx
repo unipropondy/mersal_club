@@ -118,29 +118,44 @@ export default function EditDishModal({
               {/* DISCOUNT SECTION */}
               <View style={styles.section}>
                 <Text style={styles.label}>Discount Percentage (%)</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputPrefix}>%</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={Theme.textMuted}
-                    value={discountValue}
-                    onChangeText={(val) => {
-                      // Allow only numbers
-                      const numericVal = val.replace(/[^0-9]/g, "");
-                      const num = parseInt(numericVal) || 0;
-                      // Clamp between 0 and 100
-                      if (num > 100) {
-                        setDiscountValue("100");
-                      } else {
-                        setDiscountValue(numericVal);
-                      }
-                    }}
-                    maxLength={3}
-                    selectTextOnFocus
-                  />
-                </View>
+                {(() => {
+                  const isAllowed = item.IsDiscountAllowed !== undefined 
+                    ? (Number(item.IsDiscountAllowed) !== 0 && item.IsDiscountAllowed !== false) 
+                    : true;
+                  return (
+                    <>
+                      <View style={[styles.inputWrapper, !isAllowed && { opacity: 0.6 }]}>
+                        <Text style={styles.inputPrefix}>%</Text>
+                        <TextInput
+                          style={styles.input}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={Theme.textMuted}
+                          value={discountValue}
+                          editable={isAllowed}
+                          onChangeText={(val) => {
+                            // Allow only numbers
+                            const numericVal = val.replace(/[^0-9]/g, "");
+                            const num = parseInt(numericVal) || 0;
+                            // Clamp between 0 and 100
+                            if (num > 100) {
+                              setDiscountValue("100");
+                            } else {
+                              setDiscountValue(numericVal);
+                            }
+                          }}
+                          maxLength={3}
+                          selectTextOnFocus
+                        />
+                      </View>
+                      {!isAllowed && (
+                        <Text style={{ color: Theme.danger, fontSize: 12, fontFamily: Fonts.medium, marginTop: 2 }}>
+                          Discount is not allowed for this dish
+                        </Text>
+                      )}
+                    </>
+                  );
+                })()}
               </View>
 
               {/* TAKEAWAY SECTION */}

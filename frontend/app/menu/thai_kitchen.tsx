@@ -1098,7 +1098,7 @@ export default function MenuScreen() {
           _kitchenName: currentKitchenName,
           _kitchenCode: currentKitchenCode,
         });
-        setOpenItemPrice(dish.Price > 0 ? String(dish.Price) : "");
+        setOpenItemPrice("50");
         setOpenItemError("");
         setShowOpenItemModal(true);
         return; // Wait for user to confirm price

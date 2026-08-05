@@ -65,6 +65,49 @@ router.get("/all", async (req, res) => {
       TAKEAWAY: "4",
     };
 
+    // 🚀 SELF-HEALING: Reset any occupied table that has 0 active dishes to Available (status 0)
+    try {
+      await pool.request().query(`
+        DECLARE @StaleTables TABLE (TableId UNIQUEIDENTIFIER, TableNumber VARCHAR(20), CurrentOrderId NVARCHAR(50));
+
+        INSERT INTO @StaleTables (TableId, TableNumber, CurrentOrderId)
+        SELECT TableId, TableNumber, CurrentOrderId
+        FROM TableMaster
+        WHERE Status IN (1, 2, 3)
+          AND (
+            CurrentOrderId IS NULL 
+            OR NOT EXISTS (
+              SELECT 1 
+              FROM RestaurantOrderDetailCur d
+              JOIN RestaurantOrderCur h ON d.OrderId = h.OrderId
+              WHERE h.OrderNumber = TableMaster.CurrentOrderId 
+                AND d.StatusCode <> 0
+            )
+          );
+
+        -- Reset those stale tables to Available
+        UPDATE TableMaster
+        SET Status = 0,
+            TotalAmount = 0,
+            StartTime = NULL,
+            CurrentOrderId = NULL,
+            CustomerName = NULL,
+            Pax = NULL,
+            entry_status = NULL,
+            ModifiedOn = GETDATE()
+        WHERE TableId IN (SELECT TableId FROM @StaleTables);
+
+        -- Close the corresponding order headers
+        UPDATE RestaurantOrderCur
+        SET isOrderClosed = 1,
+            ModifiedOn = GETDATE()
+        WHERE OrderNumber IN (SELECT CurrentOrderId FROM @StaleTables WHERE CurrentOrderId IS NOT NULL)
+          AND isOrderClosed = 0;
+      `);
+    } catch (healErr) {
+      console.warn("⚠️ [Tables] Self-healing check failed:", healErr.message);
+    }
+
     const holdMinutes = await getHoldOvertimeMinutes();
     let query = `
       SELECT TableId AS id, CAST(TableNumber AS VARCHAR(50)) AS label,
@@ -396,6 +439,49 @@ router.get("/:tableId", async (req, res) => {
     const pool = await poolPromise;
     const { tableId } = req.params;
     const cleanTableId = tableId.replace(/^\{|\}$/g, "").trim();
+
+    // 🚀 SELF-HEALING: Reset the table to Available if it is occupied but has 0 active dishes
+    try {
+      await pool.request()
+        .input("tableId", sql.VarChar(50), cleanTableId)
+        .query(`
+          DECLARE @TableNo VARCHAR(20), @CurrentOrderId NVARCHAR(50), @Status INT;
+          SELECT @TableNo = TableNumber, @CurrentOrderId = CurrentOrderId, @Status = Status 
+          FROM TableMaster WHERE TableId = @tableId;
+
+          IF @Status IN (1, 2, 3) AND (
+            @CurrentOrderId IS NULL 
+            OR NOT EXISTS (
+              SELECT 1 
+              FROM RestaurantOrderDetailCur d
+              JOIN RestaurantOrderCur h ON d.OrderId = h.OrderId
+              WHERE h.OrderNumber = @CurrentOrderId 
+                AND d.StatusCode <> 0
+            )
+          )
+          BEGIN
+            -- Reset TableMaster
+            UPDATE TableMaster
+            SET Status = 0,
+                TotalAmount = 0,
+                StartTime = NULL,
+                CurrentOrderId = NULL,
+                CustomerName = NULL,
+                Pax = NULL,
+                entry_status = NULL,
+                ModifiedOn = GETDATE()
+            WHERE TableId = @tableId;
+
+            -- Close order header
+            IF @CurrentOrderId IS NOT NULL
+              UPDATE RestaurantOrderCur
+              SET isOrderClosed = 1, ModifiedOn = GETDATE()
+              WHERE OrderNumber = @CurrentOrderId AND isOrderClosed = 0;
+          END
+        `);
+    } catch (healErr) {
+      console.warn("⚠️ [Tables] Self-healing check failed for single table:", healErr.message);
+    }
 
     const result = await pool.request()
       .input("tableId", sql.VarChar(50), cleanTableId)

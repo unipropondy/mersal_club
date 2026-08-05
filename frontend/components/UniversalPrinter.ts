@@ -428,10 +428,10 @@ class UniversalPrinter {
         return false;
       }
 
-      // Poll for bridge completion (up to 20 seconds - allows for bridge poll cycle + print + network latency)
+      // Poll for bridge completion (up to 8 seconds - allows for bridge poll cycle + print + network latency)
       const jobId = data.jobId;
       const start = Date.now();
-      while (Date.now() - start < 20000) {
+      while (Date.now() - start < 8000) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         try {
           const statusRes = await fetch(`${API_URL}/api/print-jobs/status/${jobId}`);
@@ -448,7 +448,7 @@ class UniversalPrinter {
           console.error("[UniversalPrinter] Status poll error:", err);
         }
       }
-      console.warn(`[UniversalPrinter] Print job ${jobId} timed out after 20s (bridge offline/no printer)`);
+      console.warn(`[UniversalPrinter] Print job ${jobId} timed out after 8s (bridge offline/no printer)`);
       return false;
     } catch (e) {
       console.warn("[UniversalPrinter] Failed to queue print job:", e);
