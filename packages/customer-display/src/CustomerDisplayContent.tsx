@@ -1423,7 +1423,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: Theme.border,
     alignItems: "center",
   },
   voidedRow: {
@@ -1433,7 +1433,7 @@ const styles = StyleSheet.create({
   receiptItemName: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    color: "#1F2937",
+    color: Theme.textPrimary,
   },
   voidedText: {
     textDecorationLine: "line-through",
@@ -1455,18 +1455,18 @@ const styles = StyleSheet.create({
   receiptItemQty: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    color: "#374151",
+    color: Theme.textSecondary,
   },
   receiptItemTotal: {
     fontSize: 15,
     fontFamily: Fonts.extraBold,
-    color: "#1F2937",
+    color: Theme.textPrimary,
   },
 
   receiptSummaryContainer: {
     borderTopWidth: 1.5,
-    borderTopColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
+    borderTopColor: Theme.border,
+    backgroundColor: Theme.bgMuted,
     padding: 16,
   },
   breakdownRow: {
@@ -1484,13 +1484,13 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontSize: 12,
     fontFamily: Fonts.medium,
-    color: "#6B7280",
+    color: Theme.textSecondary,
     marginBottom: 2,
   },
   breakdownValue: {
     fontSize: 14,
     fontFamily: Fonts.bold,
-    color: "#374151",
+    color: Theme.textPrimary,
   },
 
   netTotalHighlightBox: {
@@ -1525,9 +1525,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Theme.bgNav,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: Theme.border,
     gap: 6,
   },
   waiterText: {

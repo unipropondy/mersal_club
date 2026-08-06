@@ -879,7 +879,7 @@ const generateSalesReportPdf = async (reportData) => {
   content.push(divider(T.orange, [0, 8, 0, 6]));
   content.push({
     columns: [
-      { text: `Thank you for using ${companyName} POS System`, fontSize: 7, color: T.slate500 },
+      { text: 'Thank you for using TECHPRO POS System', fontSize: 7, color: T.slate500 },
       { text: 'CONFIDENTIAL — INTERNAL BOARD USE ONLY', fontSize: 7, color: T.slate500, alignment: 'right' }
     ]
   });

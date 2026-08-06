@@ -1068,9 +1068,9 @@ export default function MenuScreen() {
         currentKitchen?.KitchenTypeCode || String(selectedKitchenId || "0");
 
       const addToCartSimple = (overridePrice?: number) => {
-        const currentGroupObj = groups.find((g: any) => g.DishGroupId === selectedGroup);
+        const actualGroupObj = groups.find((g: any) => g.DishGroupId === dish.DishGroupId) || groups.find((g: any) => g.DishGroupId === selectedGroup);
         const dishGroupName =
-          currentGroupObj?.DishGroupName ||
+          actualGroupObj?.DishGroupName ||
           dish.DishGroupName;
         const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
         addToCartGlobal({
@@ -1359,9 +1359,9 @@ export default function MenuScreen() {
       const currentKitchenCode =
         currentKitchen?.KitchenTypeCode || selectedKitchenId;
 
-      const currentGroupObj = groups.find((g: any) => g.DishGroupId === selectedGroup);
+      const actualGroupObj = groups.find((g: any) => g.DishGroupId === selectedDish.DishGroupId) || groups.find((g: any) => g.DishGroupId === selectedGroup);
       const dishGroupName =
-        currentGroupObj?.DishGroupName ||
+        actualGroupObj?.DishGroupName ||
         selectedDish.DishGroupName;
       const groupPrefix = dishGroupName ? `${dishGroupName} - ` : "";
 
@@ -1771,10 +1771,10 @@ export default function MenuScreen() {
 
                     const shareAmount = totalAmount / selected.length;
 
+                    const actualGroupObj = groups.find((g: any) => g.DishGroupId === selectedSplitDish.DishGroupId) || groups.find((g: any) => g.DishGroupId === selectedGroup);
                     const dishGroupName =
-                      selectedSplitDish?.DishGroupName ||
-                      groups.find((g: any) => g.DishGroupId === selectedGroup)
-                        ?.DishGroupName;
+                      actualGroupObj?.DishGroupName ||
+                      selectedSplitDish?.DishGroupName;
                     const groupPrefix = dishGroupName
                       ? `${dishGroupName} - `
                       : "";
