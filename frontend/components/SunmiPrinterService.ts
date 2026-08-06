@@ -685,7 +685,7 @@ class SunmiPrinterService {
         timestamp: is80mm ? 20 : 24,
         table: is80mm ? 38 : 48,
         item: is80mm ? 28 : 36,
-        modifier: is80mm ? 20 : 24,
+        modifier: is80mm ? 28 : 36,
         note: is80mm ? 22 : 28,
         reset: is80mm ? 20 : 24,
       };
@@ -767,10 +767,16 @@ class SunmiPrinterService {
 
         if (item.modifiers && item.modifiers.length > 0) {
           await setSize(fontSizes.modifier);
+          try {
+            if (SunmiModule.setBold) await SunmiModule.setBold(true);
+          } catch (_) {}
           for (const mod of item.modifiers) {
-            await SunmiModule.printText(formatter.left(`  + ${mod.ModifierName || mod.name}`));
+            await SunmiModule.printText(formatter.left(`    + ${mod.ModifierName || mod.name}`));
             await SunmiModule.lineWrap(1);
           }
+          try {
+            if (SunmiModule.setBold) await SunmiModule.setBold(false);
+          } catch (_) {}
         }
 
         const noteText = item.note || item.notes || item.Remarks || item.remarks;

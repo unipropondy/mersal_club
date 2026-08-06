@@ -441,13 +441,9 @@ private static escapeHtml(str: string): string {
         .map((item: any) => {
           const qtyNum = item.qty || item.quantity || 1;
           const modifiersHTML = (item.modifiers && Array.isArray(item.modifiers))
-            ? item.modifiers.filter((m: any) => {
-                const mAmt = parseFloat(String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0)) || 0;
-                return mAmt > 0;
-              }).map((m: any) => {
+            ? item.modifiers.map((m: any) => {
                 const mName = (m.ModifierName || m.name || "").trim();
-                const mAmt = parseFloat(String(m.Amount ?? m.Price ?? m.amount ?? m.price ?? 0)) || 0;
-                return `<div class="item-modifiers">+ ${mName}: ${currencySymbol}${(mAmt * qtyNum).toFixed(2)}</div>`;
+                return `<div class="item-modifiers">+ ${mName}</div>`;
               }).join('')
             : '';
 
@@ -886,7 +882,7 @@ private static escapeHtml(str: string): string {
                 <span class="payment-label" style="font-size: 14px;">PAYMENT STATUS: PENDING</span>
               </div>
             ` : `
-              ${saleData.payments && Array.isArray(saleData.payments) && saleData.payments.length > 1 ? `
+              ${saleData.payments && Array.isArray(saleData.payments) && saleData.payments.length > 0 ? `
                 <div style="font-weight: bold; border-top: 1px dashed #ccc; margin-top: 2mm; padding-top: 2mm; font-size: 10px; text-align: left; text-transform: uppercase; margin-bottom: 1.5mm;">PAYMENT DETAILS</div>
                 ${saleData.payments.map((p: any) => `
                   <div class="payment-row" style="font-size: 10px; font-weight: 700; display: flex; justify-content: space-between;">
@@ -950,7 +946,7 @@ private static escapeHtml(str: string): string {
       const { uri } = await Print.printToFileAsync({
         html: html,
         base64: false,
-        width: 226
+        width: 302
       });
       
       return uri;
