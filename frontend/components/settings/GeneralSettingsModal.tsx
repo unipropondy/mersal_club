@@ -104,6 +104,7 @@ export default function GeneralSettingsModal({
   const [showLoyalty, setShowLoyalty] = useState(settings.showLoyalty !== undefined ? settings.showLoyalty : true);
   const [showRewardPoints, setShowRewardPoints] = useState(settings.showRewardPoints !== undefined ? settings.showRewardPoints : true);
   const [showPromoCode, setShowPromoCode] = useState(settings.showPromoCode !== undefined ? settings.showPromoCode : true);
+  const [vipRuleEnabled, setVipRuleEnabled] = useState(settings.vipRuleEnabled !== undefined ? settings.vipRuleEnabled : false);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
@@ -193,6 +194,7 @@ export default function GeneralSettingsModal({
       setShowLoyalty(settings.showLoyalty !== undefined ? settings.showLoyalty : true);
       setShowRewardPoints(settings.showRewardPoints !== undefined ? settings.showRewardPoints : true);
       setShowPromoCode(settings.showPromoCode !== undefined ? settings.showPromoCode : true);
+      setVipRuleEnabled(settings.vipRuleEnabled !== undefined ? settings.vipRuleEnabled : false);
       
       let initialCheckoutFlow = settings.enableCheckoutFlow;
       let initialDirectProcess = settings.enableDirectProcessToPay;
@@ -270,6 +272,7 @@ export default function GeneralSettingsModal({
       showLoyalty,
       showRewardPoints,
       showPromoCode,
+      vipRuleEnabled,
     });
     
     setIsSaving(false);
@@ -319,220 +322,173 @@ export default function GeneralSettingsModal({
           </View>
 
           {/* Body */}
+          {/* Body */}
           <ScrollView
             style={styles.scrollContainer}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* CARD 1: KOT */}
-            <View style={[styles.settingCard, enableKOT && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableKOT ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="receipt-outline" size={16} color={enableKOT ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>KOT (Kitchen Order Ticket)</Text>
+            {[
+              {
+                name: "Workflow & Operations",
+                icon: "git-network-outline",
+                items: [
+                  {
+                    title: "Guest Details Popup",
+                    desc: "Show guest info details popup before entering order screen.",
+                    icon: "people-outline",
+                    value: enableGuestDetailsPopup,
+                    onToggle: setEnableGuestDetailsPopup,
+                  },
+                  {
+                    title: "Enable Checkout Flow",
+                    desc: "Enable order summary checkout step.",
+                    icon: "git-compare-outline",
+                    value: enableCheckoutFlow,
+                    onToggle: handleToggleCheckoutFlow,
+                  },
+                  {
+                    title: "Enable Direct Process To Pay",
+                    desc: "Show 'Process To Pay' shortcut button in Cart Sidebar.",
+                    icon: "card-outline",
+                    value: enableDirectProcessToPay,
+                    onToggle: handleToggleDirectProcessToPay,
+                  },
+                  {
+                    title: "Combo Feature",
+                    desc: "Enable combo menu items and selections wizard.",
+                    icon: "fast-food-outline",
+                    value: enableCombo,
+                    onToggle: setEnableCombo,
+                  },
+                ]
+              },
+              {
+                name: "Receipts & Screen Displays",
+                icon: "print-outline",
+                items: [
+                  {
+                    title: "KOT (Kitchen Order Ticket)",
+                    desc: "Enable kitchen ticket printing.",
+                    icon: "receipt-outline",
+                    value: enableKOT,
+                    onToggle: setEnableKOT,
+                  },
+                  {
+                    title: "Checkout Bill",
+                    desc: "Enable checkout receipt printing.",
+                    icon: "wallet-outline",
+                    value: enableCheckoutBill,
+                    onToggle: setEnableCheckoutBill,
+                  },
+                  {
+                    title: "Order Hub (Order Display)",
+                    desc: "Show Order Hub screen.",
+                    icon: "desktop-outline",
+                    value: enableKDS,
+                    onToggle: setEnableKDS,
+                  },
+                  {
+                    title: "Customer-Side Display",
+                    desc: "Enable/disable secondary customer screen sync.",
+                    icon: "tv-outline",
+                    value: customerSideDisplay,
+                    onToggle: setCustomerSideDisplay,
+                  },
+                  {
+                    title: "KDS Printer Button",
+                    desc: "Show the PRINT button on every order card in KDS screen.",
+                    icon: "print-outline",
+                    value: enableKDSPrint,
+                    onToggle: setEnableKDSPrint,
+                  },
+                  {
+                    title: "Show Bill Time",
+                    desc: "Print time on Checkout Bill and Re-print Bill.",
+                    icon: "time-outline",
+                    value: showBillTime,
+                    onToggle: setShowBillTime,
+                  },
+                ]
+              },
+              {
+                name: "Drawer & Charges",
+                icon: "cash-outline",
+                items: [
+                  {
+                    title: "Enable Cash Drawer Module",
+                    desc: "Enable checkout cashbox opening triggers.",
+                    icon: "wallet-outline",
+                    value: enableCashDrawer,
+                    onToggle: handleToggleCashDrawer,
+                  },
+                  {
+                    title: "SVC Identification",
+                    desc: "Highlight Service (SVC) items with red identification.",
+                    icon: "pricetag-outline",
+                    value: SVCIdentification,
+                    onToggle: setSVCIdentification,
+                  },
+                ]
+              },
+              {
+                name: "Loyalty & Promotions",
+                icon: "gift-outline",
+                items: [
+                  {
+                    title: "Enable VIP Flow",
+                    desc: "Configure automatic VIP threshold promos and active rules.",
+                    icon: "people-circle-outline",
+                    value: vipRuleEnabled,
+                    onToggle: setVipRuleEnabled,
+                  },
+                  {
+                    title: "Loyalty Feature",
+                    desc: "Show the Loyalty button in the POS Summary screen.",
+                    icon: "ribbon-outline",
+                    value: showLoyalty,
+                    onToggle: setShowLoyalty,
+                  },
+                  {
+                    title: "Reward Points Feature",
+                    desc: "Show the Reward Points button in the POS Summary screen.",
+                    icon: "gift-outline",
+                    value: showRewardPoints,
+                    onToggle: setShowRewardPoints,
+                  },
+                  {
+                    title: "Promo Code Feature",
+                    desc: "Show the Promo Code button in the POS Summary screen.",
+                    icon: "pricetag-outline",
+                    value: showPromoCode,
+                    onToggle: setShowPromoCode,
+                  },
+                ]
+              }
+            ].map((cat, catIdx) => (
+              <View key={catIdx} style={styles.sectionContainer}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name={cat.icon as any} size={14} color={Theme.primary} />
+                  <Text style={styles.sectionTitle}>{cat.name}</Text>
                 </View>
-                <Text style={styles.settingDesc}>Enable kitchen ticket printing.</Text>
-              </View>
-              <CustomSwitch value={enableKOT} onValueChange={setEnableKOT} />
-            </View>
-
-            {/* CARD 2: KDS */}
-            <View style={[styles.settingCard, enableKDS && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableKDS ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="desktop-outline" size={16} color={enableKDS ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Order Hub (Order Display)</Text>
+                <View style={{ gap: 10 }}>
+                  {cat.items.map((item, index) => (
+                    <View key={index} style={[styles.settingCard, item.value && styles.settingCardActive]}>
+                      <View style={styles.cardLeft}>
+                        <View style={styles.cardHeaderRow}>
+                          <View style={[styles.iconWrapper, item.value ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
+                            <Ionicons name={item.icon as any} size={16} color={item.value ? Theme.primary : Theme.textSecondary} />
+                          </View>
+                          <Text style={styles.settingTitle}>{item.title}</Text>
+                        </View>
+                        <Text style={styles.settingDesc}>{item.desc}</Text>
+                      </View>
+                      <CustomSwitch value={item.value} onValueChange={item.onToggle} />
+                    </View>
+                  ))}
                 </View>
-                <Text style={styles.settingDesc}>Show kitchen display screen.</Text>
               </View>
-              <CustomSwitch value={enableKDS} onValueChange={setEnableKDS} />
-            </View>
-
-            {/* CARD 3: Checkout Bill */}
-            <View style={[styles.settingCard, enableCheckoutBill && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableCheckoutBill ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="wallet-outline" size={16} color={enableCheckoutBill ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Checkout Bill</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable checkout receipt printing.</Text>
-              </View>
-              <CustomSwitch value={enableCheckoutBill} onValueChange={setEnableCheckoutBill} />
-            </View>
-
-            {/* CARD 4: Enable Checkout Flow */}
-            <View style={[styles.settingCard, enableCheckoutFlow && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableCheckoutFlow ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="git-compare-outline" size={16} color={enableCheckoutFlow ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Enable Checkout Flow</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable order summary checkout step.</Text>
-              </View>
-              <CustomSwitch value={enableCheckoutFlow} onValueChange={handleToggleCheckoutFlow} />
-            </View>
-
-            {/* CARD 5: Enable Direct Process To Pay */}
-            <View style={[styles.settingCard, enableDirectProcessToPay && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableDirectProcessToPay ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="card-outline" size={16} color={enableDirectProcessToPay ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Enable Direct Process To Pay</Text>
-                </View>
-                <Text style={styles.settingDesc}>Show "Process To Pay" shortcut button in Cart Sidebar.</Text>
-              </View>
-              <CustomSwitch value={enableDirectProcessToPay} onValueChange={handleToggleDirectProcessToPay} />
-            </View>
-
-            {/* CARD 6: Customer-Side Display */}
-            <View style={[styles.settingCard, customerSideDisplay && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, customerSideDisplay ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="tv-outline" size={16} color={customerSideDisplay ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Customer-Side Display</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable/disable secondary customer screen sync.</Text>
-              </View>
-              <CustomSwitch value={customerSideDisplay} onValueChange={setCustomerSideDisplay} />
-            </View>
-
-            {/* CARD 7: Guest Details Popup */}
-            <View style={[styles.settingCard, enableGuestDetailsPopup && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableGuestDetailsPopup ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="people-outline" size={16} color={enableGuestDetailsPopup ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Guest Details Popup</Text>
-                </View>
-                <Text style={styles.settingDesc}>Show guest info details popup before entering order screen.</Text>
-              </View>
-              <CustomSwitch value={enableGuestDetailsPopup} onValueChange={setEnableGuestDetailsPopup} />
-            </View>
-
-            {/* CARD 8: Enable Cash Drawer */}
-            <View style={[styles.settingCard, enableCashDrawer && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableCashDrawer ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="wallet-outline" size={16} color={enableCashDrawer ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Enable Cash Drawer Module</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable checkout cashbox opening triggers and manual overrides wizard.</Text>
-              </View>
-              <CustomSwitch value={enableCashDrawer} onValueChange={handleToggleCashDrawer} />
-            </View>
-
-            {/* CARD 9: SVC Identification */}
-            <View style={[styles.settingCard, SVCIdentification && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, SVCIdentification ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="pricetag-outline" size={16} color={SVCIdentification ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>SVC Identification</Text>
-                </View>
-                <Text style={styles.settingDesc}>Highlight Service (SVC) items with red identification.</Text>
-              </View>
-              <CustomSwitch value={SVCIdentification} onValueChange={setSVCIdentification} />
-            </View>
-
-            {/* CARD 10: KDS Print Button Control */}
-            <View style={[styles.settingCard, enableKDSPrint && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableKDSPrint ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="print-outline" size={16} color={enableKDSPrint ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>KDS Printer Button</Text>
-                </View>
-                <Text style={styles.settingDesc}>Show the PRINT button on every order card in KDS screen.</Text>
-              </View>
-              <CustomSwitch value={enableKDSPrint} onValueChange={setEnableKDSPrint} />
-            </View>
-
-            {/* CARD 11: Combo Feature Control */}
-            <View style={[styles.settingCard, enableCombo && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, enableCombo ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="fast-food-outline" size={16} color={enableCombo ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Combo Feature</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable combo menu items and selections wizard.</Text>
-              </View>
-              <CustomSwitch value={enableCombo} onValueChange={setEnableCombo} />
-            </View>
-
-            {/* CARD 12: Show Bill Time */}
-            <View style={[styles.settingCard, showBillTime && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, showBillTime ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="time-outline" size={16} color={showBillTime ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Show Bill Time</Text>
-                </View>
-                <Text style={styles.settingDesc}>Print time on Checkout Bill and Re-print Bill.</Text>
-              </View>
-              <CustomSwitch value={showBillTime} onValueChange={setShowBillTime} />
-            </View>
-
-            {/* CARD 13: Loyalty Feature Control */}
-            <View style={[styles.settingCard, showLoyalty && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, showLoyalty ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="ribbon-outline" size={16} color={showLoyalty ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Loyalty Feature</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable the Loyalty program lookup and rewards.</Text>
-              </View>
-              <CustomSwitch value={showLoyalty} onValueChange={setShowLoyalty} />
-            </View>
-
-            {/* CARD 14: Reward Points Control */}
-            <View style={[styles.settingCard, showRewardPoints && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, showRewardPoints ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="star-outline" size={16} color={showRewardPoints ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Reward Points Feature</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable the Reward Points calculation and redemption.</Text>
-              </View>
-              <CustomSwitch value={showRewardPoints} onValueChange={setShowRewardPoints} />
-            </View>
-
-            {/* CARD 15: Promo Code Control */}
-            <View style={[styles.settingCard, showPromoCode && styles.settingCardActive]}>
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, showPromoCode ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name="barcode-outline" size={16} color={showPromoCode ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle}>Promo Code Feature</Text>
-                </View>
-                <Text style={styles.settingDesc}>Enable promo code application on bills.</Text>
-              </View>
-              <CustomSwitch value={showPromoCode} onValueChange={setShowPromoCode} />
-            </View>
+            ))}
           </ScrollView>
 
           {/* Footer */}
@@ -669,6 +625,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAF9F6",
     color: Theme.textPrimary,
     fontFamily: Fonts.medium,
+  },
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+    paddingLeft: 2,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.black,
+    color: Theme.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
   // Overlay & Modal Card
   overlay: {

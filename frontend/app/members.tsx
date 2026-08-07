@@ -635,7 +635,7 @@ export default function MembersScreen() {
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <Text style={styles.memberName}>{item.Name}</Text>
-              {(item.IsVIP === true || item.IsVIP === 1) && (
+              {!!settings.vipRuleEnabled && (item.IsVIP === true || item.IsVIP === 1) && (
                 <View style={styles.vipBadge}>
                   <Ionicons name="sparkles" size={10} color="#fff" />
                   <Text style={styles.vipBadgeText}>VIP {item.VIPType === 'Automatic' ? 'Auto' : 'Manual'}</Text>
@@ -753,7 +753,7 @@ export default function MembersScreen() {
         </View>
 
         {/* ── VIP Progress Block ── */}
-        {!(item.IsVIP === true || item.IsVIP === 1) && (
+        {!!settings.vipRuleEnabled && !(item.IsVIP === true || item.IsVIP === 1) && (
           <View style={styles.vipProgressContainer}>
             <View style={styles.vipProgressHeader}>
               <Text style={styles.vipProgressLabel}>VIP PROGRESS ({formatMoney(item.LifetimeSpend || 0)} / {formatMoney(settings.vipThreshold || 5000)})</Text>
@@ -805,10 +805,12 @@ export default function MembersScreen() {
           </TouchableOpacity>
           <Text style={styles.screenTitle}>Member Management</Text>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity onPress={() => { setTempThreshold(String(settings.vipThreshold ?? 5000)); setShowVipSettingsModal(true); }} style={[styles.addBtn, { backgroundColor: Theme.bgCard, borderWidth: 1, borderColor: Theme.primary, flexDirection: "row", alignItems: "center", justifyContent: "center", height: 44, paddingHorizontal: 12 }]}>
-              <Ionicons name="ribbon" size={16} color={Theme.primary} style={{ marginRight: 6 }} />
-              <Text style={[styles.addBtnText, { color: Theme.primary, fontSize: 13, fontFamily: Fonts.bold }]} numberOfLines={1}>VIP Threshold</Text>
-            </TouchableOpacity>
+            {!!settings.vipRuleEnabled && (
+              <TouchableOpacity onPress={() => { setTempThreshold(String(settings.vipThreshold ?? 5000)); setShowVipSettingsModal(true); }} style={[styles.addBtn, { backgroundColor: Theme.bgCard, borderWidth: 1, borderColor: Theme.primary, flexDirection: "row", alignItems: "center", justifyContent: "center", height: 44, paddingHorizontal: 12 }]}>
+                <Ionicons name="ribbon" size={16} color={Theme.primary} style={{ marginRight: 6 }} />
+                <Text style={[styles.addBtnText, { color: Theme.primary, fontSize: 13, fontFamily: Fonts.bold }]} numberOfLines={1}>VIP Threshold</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
               <Text style={styles.addBtnText}>+ Add Member</Text>
             </TouchableOpacity>
@@ -906,27 +908,29 @@ export default function MembersScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>VIP MEMBERSHIP</Text>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity 
-                      style={[styles.statusToggle, formData.isVIP && styles.vipActiveToggle]} 
-                      onPress={() => setFormData({ ...formData, isVIP: !formData.isVIP })}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <Ionicons 
-                          name={formData.isVIP ? "checkbox" : "square-outline"} 
-                          size={18} 
-                          color={formData.isVIP ? "#fff" : Theme.textSecondary} 
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={[styles.statusText, formData.isVIP && styles.activeStatusText]}>
-                          {formData.isVIP ? "VIP (" + formData.vipType + ")" : "Normal Member"}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                {!!settings.vipRuleEnabled && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>VIP MEMBERSHIP</Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity 
+                        style={[styles.statusToggle, formData.isVIP && styles.vipActiveToggle]} 
+                        onPress={() => setFormData({ ...formData, isVIP: !formData.isVIP })}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <Ionicons 
+                            name={formData.isVIP ? "checkbox" : "square-outline"} 
+                            size={18} 
+                            color={formData.isVIP ? "#fff" : Theme.textSecondary} 
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={[styles.statusText, formData.isVIP && styles.activeStatusText]}>
+                            {formData.isVIP ? "VIP (" + formData.vipType + ")" : "Normal Member"}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 <View style={styles.inputRow}>
                   <View style={{ flex: 1 }}>

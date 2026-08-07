@@ -2608,7 +2608,7 @@ export default function SummaryScreen() {
                               ? `Reward Member: ${rewardMember.Name}`
                               : rewardMember.Name}
                           </Text>
-                          {Boolean(rewardMember.IsVIP) && (
+                          {Boolean(rewardMember.IsVIP) && !!useGeneralSettingsStore.getState().settings.vipRuleEnabled && (
                             <View
                               style={{
                                 flexDirection: "row",
@@ -2735,7 +2735,7 @@ export default function SummaryScreen() {
                           </Text>
                         )}
 
-                        {Boolean(rewardMember.IsVIP) && (
+                        {Boolean(rewardMember.IsVIP) && !!useGeneralSettingsStore.getState().settings.vipRuleEnabled && (
                           <>
                             <TouchableOpacity
                               onPress={() => {

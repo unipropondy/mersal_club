@@ -681,7 +681,7 @@ export default function PaymentScreen() {
         calculatedItems: [],
       };
     }
-    const isVip = selectedMember?.IsVIP === true || selectedMember?.IsVIP === 1;
+    const isVip = (selectedMember?.IsVIP === true || selectedMember?.IsVIP === 1) && !!useGeneralSettingsStore.getState().settings.vipRuleEnabled;
     const nonVoided = finalItems.filter((i: any) => i.status !== "VOIDED");
     
     return nonVoided.reduce(

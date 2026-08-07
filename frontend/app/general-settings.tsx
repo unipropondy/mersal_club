@@ -101,6 +101,7 @@ export default function GeneralSettingsScreen() {
   const [showLoyalty, setShowLoyalty] = useState(settings.showLoyalty !== undefined ? settings.showLoyalty : true);
   const [showRewardPoints, setShowRewardPoints] = useState(settings.showRewardPoints !== undefined ? settings.showRewardPoints : true);
   const [showPromoCode, setShowPromoCode] = useState(settings.showPromoCode !== undefined ? settings.showPromoCode : true);
+  const [vipRuleEnabled, setVipRuleEnabled] = useState(settings.vipRuleEnabled !== undefined ? settings.vipRuleEnabled : false);
 
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -127,6 +128,7 @@ export default function GeneralSettingsScreen() {
     setShowLoyalty(settings.showLoyalty !== undefined ? settings.showLoyalty : true);
     setShowRewardPoints(settings.showRewardPoints !== undefined ? settings.showRewardPoints : true);
     setShowPromoCode(settings.showPromoCode !== undefined ? settings.showPromoCode : true);
+    setVipRuleEnabled(settings.vipRuleEnabled !== undefined ? settings.vipRuleEnabled : false);
 
 
     let initialCheckoutFlow = settings.enableCheckoutFlow;
@@ -225,7 +227,7 @@ export default function GeneralSettingsScreen() {
       showLoyalty,
       showRewardPoints,
       showPromoCode,
-
+      vipRuleEnabled,
     });
     setSaving(false);
 
@@ -237,105 +239,136 @@ export default function GeneralSettingsScreen() {
     }
   };
 
-  const settingsList = [
+  const categories = [
     {
-      title: "KOT (Kitchen Order Ticket)",
-      desc: "Enable kitchen ticket printing.",
-      icon: "receipt-outline",
-      value: enableKOT,
-      onToggle: setEnableKOT,
+      name: "Workflow & Operations",
+      icon: "git-network-outline",
+      items: [
+        {
+          title: "Guest Details Popup",
+          desc: "Show guest info details popup before entering order screen.",
+          icon: "people-outline",
+          value: enableGuestDetailsPopup,
+          onToggle: setEnableGuestDetailsPopup,
+        },
+        {
+          title: "Enable Checkout Flow",
+          desc: "Enable order summary checkout step.",
+          icon: "git-compare-outline",
+          value: enableCheckoutFlow,
+          onToggle: handleToggleCheckoutFlow,
+        },
+        {
+          title: "Enable Direct Process To Pay",
+          desc: "Show 'Process To Pay' shortcut button in Cart Sidebar.",
+          icon: "card-outline",
+          value: enableDirectProcessToPay,
+          onToggle: handleToggleDirectProcessToPay,
+        },
+        {
+          title: "Combo Feature",
+          desc: "Enable combo menu items and selections wizard.",
+          icon: "fast-food-outline",
+          value: enableCombo,
+          onToggle: setEnableCombo,
+        },
+      ]
     },
     {
-      title: "Order Hub (Order Display)",
-      desc: "Show Order Hub screen.",
-      icon: "desktop-outline",
-      value: enableKDS,
-      onToggle: setEnableKDS,
-    },
-    {
-      title: "Checkout Bill",
-      desc: "Enable checkout receipt printing.",
-      icon: "wallet-outline",
-      value: enableCheckoutBill,
-      onToggle: setEnableCheckoutBill,
-    },
-    {
-      title: "Enable Checkout Flow",
-      desc: "Enable order summary checkout step.",
-      icon: "git-compare-outline",
-      value: enableCheckoutFlow,
-      onToggle: handleToggleCheckoutFlow,
-    },
-    {
-      title: "Enable Direct Process To Pay",
-      desc: "Show 'Process To Pay' shortcut button in Cart Sidebar.",
-      icon: "card-outline",
-      value: enableDirectProcessToPay,
-      onToggle: handleToggleDirectProcessToPay,
-    },
-    {
-      title: "Customer-Side Display",
-      desc: "Enable/disable secondary customer screen sync.",
-      icon: "tv-outline",
-      value: customerSideDisplay,
-      onToggle: setCustomerSideDisplay,
-    },
-    {
-      title: "Guest Details Popup",
-      desc: "Show guest info details popup before entering order screen.",
-      icon: "people-outline",
-      value: enableGuestDetailsPopup,
-      onToggle: setEnableGuestDetailsPopup,
-    },
-    {
-      title: "Enable Cash Drawer Module",
-      desc: "Enable checkout cashbox opening triggers.",
-      icon: "wallet-outline",
-      value: enableCashDrawer,
-      onToggle: handleToggleCashDrawer,
-    },
-    {
-      title: "SVC Identification",
-      desc: "Highlight Service (SVC) items with red identification.",
-      icon: "pricetag-outline",
-      value: SVCIdentification,
-      onToggle: setSVCIdentification,
-    },
-    {
-      title: "KDS Printer Button",
-      desc: "Show the PRINT button on every order card in KDS screen.",
+      name: "Receipts & Screen Displays",
       icon: "print-outline",
-      value: enableKDSPrint,
-      onToggle: setEnableKDSPrint,
+      items: [
+        {
+          title: "KOT (Kitchen Order Ticket)",
+          desc: "Enable kitchen ticket printing.",
+          icon: "receipt-outline",
+          value: enableKOT,
+          onToggle: setEnableKOT,
+        },
+        {
+          title: "Checkout Bill",
+          desc: "Enable checkout receipt printing.",
+          icon: "wallet-outline",
+          value: enableCheckoutBill,
+          onToggle: setEnableCheckoutBill,
+        },
+        {
+          title: "Order Hub (Order Display)",
+          desc: "Show Order Hub screen.",
+          icon: "desktop-outline",
+          value: enableKDS,
+          onToggle: setEnableKDS,
+        },
+        {
+          title: "Customer-Side Display",
+          desc: "Enable/disable secondary customer screen sync.",
+          icon: "tv-outline",
+          value: customerSideDisplay,
+          onToggle: setCustomerSideDisplay,
+        },
+        {
+          title: "KDS Printer Button",
+          desc: "Show the PRINT button on every order card in KDS screen.",
+          icon: "print-outline",
+          value: enableKDSPrint,
+          onToggle: setEnableKDSPrint,
+        },
+      ]
     },
     {
-      title: "Combo Feature",
-      desc: "Enable combo menu items and selections wizard.",
-      icon: "fast-food-outline",
-      value: enableCombo,
-      onToggle: setEnableCombo,
+      name: "Drawer & Charges",
+      icon: "cash-outline",
+      items: [
+        {
+          title: "Enable Cash Drawer Module",
+          desc: "Enable checkout cashbox opening triggers.",
+          icon: "wallet-outline",
+          value: enableCashDrawer,
+          onToggle: handleToggleCashDrawer,
+        },
+        {
+          title: "SVC Identification",
+          desc: "Highlight Service (SVC) items with red identification.",
+          icon: "pricetag-outline",
+          value: SVCIdentification,
+          onToggle: setSVCIdentification,
+        },
+      ]
     },
     {
-      title: "Loyalty Feature",
-      desc: "Show the Loyalty button in the POS Summary screen.",
-      icon: "ribbon-outline",
-      value: showLoyalty,
-      onToggle: setShowLoyalty,
-    },
-    {
-      title: "Reward Points Feature",
-      desc: "Show the Reward Points button in the POS Summary screen.",
+      name: "Loyalty & Promotions",
       icon: "gift-outline",
-      value: showRewardPoints,
-      onToggle: setShowRewardPoints,
-    },
-    {
-      title: "Promo Code Feature",
-      desc: "Show the Promo Code button in the POS Summary screen.",
-      icon: "pricetag-outline",
-      value: showPromoCode,
-      onToggle: setShowPromoCode,
-    },
+      items: [
+        {
+          title: "Enable VIP Flow",
+          desc: "Configure automatic VIP threshold promos and active rules.",
+          icon: "people-circle-outline",
+          value: vipRuleEnabled,
+          onToggle: setVipRuleEnabled,
+        },
+        {
+          title: "Loyalty Feature",
+          desc: "Show the Loyalty button in the POS Summary screen.",
+          icon: "ribbon-outline",
+          value: showLoyalty,
+          onToggle: setShowLoyalty,
+        },
+        {
+          title: "Reward Points Feature",
+          desc: "Show the Reward Points button in the POS Summary screen.",
+          icon: "gift-outline",
+          value: showRewardPoints,
+          onToggle: setShowRewardPoints,
+        },
+        {
+          title: "Promo Code Feature",
+          desc: "Show the Promo Code button in the POS Summary screen.",
+          icon: "pricetag-outline",
+          value: showPromoCode,
+          onToggle: setShowPromoCode,
+        },
+      ]
+    }
   ];
 
   return (
@@ -369,31 +402,37 @@ export default function GeneralSettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.gridContainer}>
-          {settingsList.map((item, index) => (
-            <View
-              key={index}
-              style={[
-                styles.settingCard,
-                item.value && styles.settingCardActive,
-                isTablet ? styles.cardTablet : styles.cardMobile,
-              ]}
-            >
-              <View style={styles.cardLeft}>
-                <View style={styles.cardHeaderRow}>
-                  <View style={[styles.iconWrapper, item.value ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
-                    <Ionicons name={item.icon as any} size={18} color={item.value ? Theme.primary : Theme.textSecondary} />
-                  </View>
-                  <Text style={styles.settingTitle} numberOfLines={1}>{item.title}</Text>
-                </View>
-                <Text style={styles.settingDesc}>{item.desc}</Text>
-              </View>
-              <CustomSwitch value={item.value} onValueChange={item.onToggle} />
+        {categories.map((cat, catIdx) => (
+          <View key={catIdx} style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name={cat.icon as any} size={18} color={Theme.primary} />
+              <Text style={styles.sectionTitle}>{cat.name}</Text>
             </View>
-          ))}
-        </View>
-
-
+            <View style={styles.gridContainer}>
+              {cat.items.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.settingCard,
+                    item.value && styles.settingCardActive,
+                    isTablet ? styles.cardTablet : styles.cardMobile,
+                  ]}
+                >
+                  <View style={styles.cardLeft}>
+                    <View style={styles.cardHeaderRow}>
+                      <View style={[styles.iconWrapper, item.value ? styles.iconWrapperActive : styles.iconWrapperInactive]}>
+                        <Ionicons name={item.icon as any} size={18} color={item.value ? Theme.primary : Theme.textSecondary} />
+                      </View>
+                      <Text style={styles.settingTitle} numberOfLines={1}>{item.title}</Text>
+                    </View>
+                    <Text style={styles.settingDesc}>{item.desc}</Text>
+                  </View>
+                  <CustomSwitch value={item.value} onValueChange={item.onToggle} />
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
       </ScrollView>
 
       {/* Footer */}
@@ -516,6 +555,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.bgMain,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+    paddingLeft: 4,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.black,
+    color: Theme.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   header: {
     height: 72,
